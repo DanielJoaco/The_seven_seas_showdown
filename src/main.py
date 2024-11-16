@@ -4,52 +4,38 @@ from modules.board import Board
 from modules.ui import ui
 from modules.player import Player
 import modules.game_logic as game_logic
-from modules.utils import handle_keyboard_navigation, handle_mouse_selection
+import time
 
-pygame.init()
-pygame.font.init()
-
-board = Board()
-player = Player("Jugador", board)
-bot_board = Board()  # Tablero separado para el bot
-bot = Player("Bot", bot_board)
-orientation = "H"  # Orientación inicial del barco
-selected_row, selected_col = 0, 0  # Posición inicial para la colocación de barcos
+def initialize_game():
+    """Inicializa los elementos principales del juego: tableros y jugadores."""
+    board = Board(15)
+    player = Player("Jugador", board)
+    bot_board = Board(15)
+    bot = Player("Bot", bot_board)
+    return board, player, bot_board, bot
 
 def main_menu():
+    """Despliega el menú principal y maneja la navegación entre opciones."""
     ui.init_screen()
+    font = pygame.font.SysFont(None, 50)
 
-    while True:
-        action = select_option()
-        if action == "Start Game":
-            print("Inicia el juego")
-            game_logic.place_ships(player, board)
-            bot.place_fleet_randomly()
-            print(f"Barcos de {player.name} y {bot.name} han sido colocados.")
-            game_logic.start_battle(player, bot)
-            # Llamar a la función para iniciar la batalla (comentar si aún no está implementada)
-            # start_battle(player, bot)
-        elif action == "Show Rules":
-            print("Mostrar reglas y cómo se juega")
-        elif action == "Show Settings":
-            print("Mostrar configuraciones")
-
-
-def select_option():
+    # Definir los botones del menú
     button_specs = [
         (config.WINDOW_WIDTH // 2 - 110, 200, "Start Game", False),
         (config.WINDOW_WIDTH // 2 - 110, 300, "Show Rules", False),
-        (config.WINDOW_WIDTH // 2 - 110, 400, "Show Settings", False)
+        (config.WINDOW_WIDTH // 2 - 110, 400, "Show Settings", False),
+        (config.WINDOW_WIDTH // 2 - 110, 500, "Exit", False),
     ]
-
-    font = pygame.font.SysFont(None, 50)
-    selected_index = 0
-    button_specs[selected_index] = button_specs[selected_index][:3] + (True,)  # Set initial selection
-    clock = pygame.time.Clock()
+    selected_index = 0  # Botón seleccionado por defecto
+    last_input = "keyboard"  # Para rastrear la última fuente de entrada
 
     while True:
+        # Actualizar estado de los botones
+        for i in range(len(button_specs)):
+            button_specs[i] = button_specs[i][:3] + (i == selected_index,)
+
         ui.fill_background()
-        ui.render_menu(button_specs, font, 280, 60, 50)
+        hovered_index = ui.render_menu(button_specs, font, 280, 60, 50)
         ui.update_display()
 
         for event in pygame.event.get():
@@ -57,20 +43,135 @@ def select_option():
                 pygame.quit()
                 exit()
             
-            # Manejo de navegación en el menú con teclado
+            # Manejo de navegación con teclado
             if event.type == pygame.KEYDOWN:
-                selected_index, _ = handle_keyboard_navigation(event, selected_index, 0, len(button_specs), 1)
-                if event.key == pygame.K_RETURN:
-                    return button_specs[selected_index][2]
-                
-            # Manejo de selección en el menú con ratón
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                for i, (x, y, text, _) in enumerate(button_specs):
-                    if x <= mouse_pos[0] <= x + 220 and y <= mouse_pos[1] <= y + 50:
-                        return text
+                if event.key == pygame.K_UP:
+                    selected_index = max(0, selected_index - 1)
+                    last_input = "keyboard"
+                elif event.key == pygame.K_DOWN:
+                    selected_index = min(len(button_specs) - 1, selected_index + 1)
+                    last_input = "keyboard"
+                elif event.key == pygame.K_RETURN:
+                    return button_specs[selected_index][2]  # Acción seleccionada
+            
+            # Manejo de interacción con mouse
+            if hovered_index is not None:
+                if last_input != "mouse" or hovered_index != selected_index:
+                    selected_index = hovered_index
+                    last_input = "mouse"
 
-        clock.tick(30)
+            # Detección de clic para seleccionar
+            if event.type == pygame.MOUSEBUTTONDOWN and hovered_index is not None:
+                return button_specs[hovered_index][2]  # Acción seleccionada
+
+def start_game(board, player, bot_board, bot):
+    """Inicia el flujo principal del juego."""
+    running = True
+    current_turn = "placing_player_ships"  # Estado inicial del juego
+    current_round = 1  # Ronda inicial
+
+    # Configurar posiciones iniciales de los tableros
+    board.start_x = 50
+    board.start_y = config.WINDOW_HEIGHT // 2 - board.pixel_size // 2 + 100
+
+    bot_board.start_x = config.WINDOW_WIDTH - bot_board.pixel_size - 50
+    bot_board.start_y = config.WINDOW_HEIGHT // 2 - bot_board.pixel_size // 2 + 100
+
+    while running:
+        # Limpia la pantalla y dibuja el estado actual del juego
+        ui.fill_background()
+        game_logic.draw_game_state(
+            ui.screen,
+            player,
+            bot,
+            board,
+            bot_board,
+            current_turn,
+            current_round,
+        )
+        ui.update_display()
+
+        # Flujo de colocación de barcos
+        if current_turn == "placing_player_ships":
+            # Permite al jugador colocar sus barcos
+            if game_logic.place_ships(ui.screen, board, player.fleet, player, bot, bot_board):
+                # Cambiar al estado de colocación de barcos del bot
+                current_turn = "placing_bot_ships"
+                ui.fill_background()
+                game_logic.draw_game_state(
+                    ui.screen,
+                    player,
+                    bot,
+                    board,
+                    bot_board,
+                    current_turn,
+                    current_round,
+                )
+                ui.update_display()
+                time.sleep(5)  # Simula el tiempo que toma el bot en colocar barcos
+                bot.place_fleet_randomly()
+                current_turn = "player_turn"
+
+        # Manejo de turnos de juego
+        elif current_turn == "player_turn":
+            # Aquí iría la lógica del turno del jugador
+            pass
+
+        elif current_turn == "bot_turn":
+            # Aquí iría la lógica del turno del bot
+            current_turn = "player_turn"
+            current_round += 1  # Incrementa la ronda al final del turno del bot
+
+        # Manejo de eventos globales
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False  # Salir del juego
+
+def show_rules():
+    """Despliega las reglas del juego."""
+    running = True
+    while running:
+        print("Reglas del juego: Presiona ESC para regresar al menú principal.")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False  # Salir del bucle de reglas
+
+def show_settings():
+    """Muestra las configuraciones del juego."""
+    running = True
+    while running:
+        print("Configuraciones del juego: Presiona ESC para regresar al menú principal.")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False  # Salir del bucle de configuraciones
 
 if __name__ == '__main__':
-    main_menu()
+    pygame.init()
+    pygame.font.init()
+
+    # Inicializar tableros y jugadores
+    board, player, bot_board, bot = initialize_game()
+
+    while True:
+        # Mostrar menú principal y capturar la acción seleccionada
+        action = main_menu()
+        
+        if action == "Start Game":
+            start_game(board, player, bot_board, bot)
+        elif action == "Show Rules":
+            show_rules()
+        elif action == "Show Settings":
+            show_settings()
+        elif action == "Exit":
+            pygame.quit()
+            exit()

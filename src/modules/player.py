@@ -11,7 +11,6 @@ class Player:
         self.fleet = create_fleet()  # Crear la flota de barcos del jugador
         self.life = sum(ship.size * ship.quantity for ship in self.fleet)  # Vida basada en el total de celdas de barcos
         self.stamina = 5  # Puntos de estamina iniciales para habilidades especiales
-        self.shields = 2  # Número de escudos disponibles
         self.radar = 1    # Uso de radar disponible
         self.placed_ships = []  # Posiciones de barcos ya colocados para evitar colisiones
 
@@ -35,10 +34,10 @@ class Player:
         if not self.can_place_ship(ship, start_row, start_col, orientation):
             return False
 
-        ship.place((start_row, start_col), orientation)
+        ship.place((start_row, start_col), orientation, self.board.board_size)
         for pos in ship.positions:
             self.placed_ships.append(pos)
-            self.board.update_cell(pos[0], pos[1], state=1, ship=ship.name)  # Actualizamos también el nombre del barco
+            self.board.update_cell(pos[0], pos[1], state=1, ship=ship.name)
         return True
 
     def place_fleet_randomly(self):
@@ -61,35 +60,18 @@ class Player:
             self.stamina += 1  # Ganar estamina al acertar
         return result
 
-    def special_attack_square(self, opponent_board, row, col):
+    def special_attack(self, opponent_board, row, col, area):
         """
-        Realiza un ataque especial en un área de 2x2 celdas.
+        Realiza un ataque especial basado en un área definida.
+        - area: Diccionario con las dimensiones del ataque y su costo.
         """
-        if self.stamina < 2:
-            print("No tienes suficiente estamina para un ataque especial.")
+        if self.stamina < area["cost"]:
+            print(f"No tienes suficiente estamina para {area['name']}.")
             return None
-        self.stamina -= 2  # Consumir estamina por usar ataque especial
-        print(f"{self.name} realiza un ataque especial en cuadrado!")
+        self.stamina -= area["cost"]
         results = []
-        for r in range(row, min(row + 2, opponent_board.board_size)):
-            for c in range(col, min(col + 2, opponent_board.board_size)):
-                result = opponent_board.receive_attack(r, c)
-                results.append((r, c, result))
-        return results
-
-    def special_attack_line(self, opponent_board, row, col, orientation="horizontal"):
-        """
-        Realiza un ataque especial en una línea de 3 celdas.
-        """
-        if self.stamina < 3:
-            print("No tienes suficiente estamina para un ataque en línea.")
-            return None
-        self.stamina -= 3  # Consumir estamina por usar ataque en línea
-        print(f"{self.name} realiza un ataque especial en línea!")
-        results = []
-        for i in range(3):
-            r, c = (row, col + i) if orientation == "horizontal" else (row + i, col)
-            if r < opponent_board.board_size and c < opponent_board.board_size:
+        for r in range(row, min(row + area["rows"], opponent_board.board_size)):
+            for c in range(col, min(col + area["cols"], opponent_board.board_size)):
                 result = opponent_board.receive_attack(r, c)
                 results.append((r, c, result))
         return results
@@ -101,15 +83,16 @@ class Player:
         if self.radar <= 0:
             print("No tienes uso de radar disponible.")
             return None
-        self.radar -= 1  # Consumir un uso de radar
+        self.radar -= 1
         print(f"{self.name} usa el radar en el área de ({row},{col})!")
         for r in range(max(0, row - 1), min(row + 2, opponent_board.board_size)):
             for c in range(max(0, col - 1), min(col + 2, opponent_board.board_size)):
-                if opponent_board.grid[r][c] == 1:  # Barco encontrado
+                cell = opponent_board.grid[r][c]
+                if cell["state"] == 1:  # Barco encontrado
                     print(f"Radar detectó un barco en ({r}, {c})!")
                     return r, c
         print("No se detectaron barcos en el área.")
-        return None  # No se encontró ningún barco
+        return None
 
     def receive_attack(self, row, col):
         """
@@ -125,4 +108,3 @@ class Player:
             cell["state"] = 2  # Marcar como fallado
             return "miss"
         return "already_attacked"  # Si ya fue atacado previamente
-

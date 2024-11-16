@@ -1,5 +1,11 @@
 import pygame
 
+def is_within_bounds(row, col, board_size):
+    """
+    Verifica si una celda (row, col) está dentro de los límites del tablero.
+    """
+    return 0 <= row < board_size and 0 <= col < board_size
+
 def handle_keyboard_navigation(event, selected_row, selected_col, max_row, max_col):
     """
     Maneja la navegación en un tablero o lista usando las teclas de flecha.
@@ -21,10 +27,10 @@ def handle_mouse_selection(event, start_x, start_y, cell_size, board_size):
     Maneja la selección de celdas con el ratón.
     Devuelve las coordenadas de la celda seleccionada (fila, columna) si el ratón está dentro del tablero.
     """
-    if event.type == pygame.MOUSEMOTION or event.type == pygame.MOUSEBUTTONDOWN:
+    if event.type in [pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN]:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         row = (mouse_y - start_y) // cell_size
         col = (mouse_x - start_x) // cell_size
-        if 0 <= row < board_size and 0 <= col < board_size:
+        if is_within_bounds(row, col, board_size):
             return row, col
     return None
