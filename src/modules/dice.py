@@ -3,7 +3,7 @@ import random
 from modules.buttons import draw_button, is_mouse_over_button
 from modules.config import config
 
-def dice_turn(screen, message, button_area_rect, process_dice_roll):
+def dice_turn(screen, message, button_area_rect):
     """
     Lógica para lanzar el dado con un botón dentro del área central.
     """
@@ -13,7 +13,6 @@ def dice_turn(screen, message, button_area_rect, process_dice_roll):
     button_height = 50
 
     font = pygame.font.Font(config.font_regular, 24)
-
     dice_result = None
     rolling = False
     start_time = None
@@ -28,40 +27,13 @@ def dice_turn(screen, message, button_area_rect, process_dice_roll):
                 pygame.quit()
                 exit()
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Clic izquierdo
-                    if is_hovered:
-                        rolling = True
-                        start_time = pygame.time.get_ticks()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and is_hovered:
+                rolling = True
+                start_time = pygame.time.get_ticks()
 
-        # Dibujar la sección central
-        pygame.draw.rect(screen, config.colors["background"], button_area_rect, border_radius=10)
-
-        # Mostrar el mensaje o el resultado temporal del dado
-        if rolling:
-            elapsed_time = pygame.time.get_ticks() - start_time
-            if elapsed_time < 3000:  # Lanzamiento de 3 segundos
-                current_roll = random.randint(1, 20)
-                message = str(current_roll)  # Reemplaza el mensaje por el número aleatorio
-            else:
-                dice_result = random.randint(1, 20)
-                process_dice_roll(dice_result)
-
-        # Dibujar el mensaje (número o texto)
-        message_text = font.render(message, True, config.colors["text"])
-        message_rect = message_text.get_rect(center=(button_area_rect.centerx, button_area_rect.centery - 40))
-        screen.blit(message_text, message_rect)
-
-        # Crear el botón
-        draw_button(
-            screen,
-            button_x,
-            button_y,
-            button_width,
-            button_height,
-            "Tirar Dado",
-            font,
-            is_hovered=is_hovered
+        # Dibujar la sección central y manejar la lógica del dado
+        dice_result = _render_dice_turn(
+            screen, font, button_area_rect, rolling, start_time, message, button_x, button_y, button_width, button_height, is_hovered
         )
 
         pygame.display.flip()
@@ -69,39 +41,54 @@ def dice_turn(screen, message, button_area_rect, process_dice_roll):
 
     return dice_result
 
-def draw_dice_area(screen, message, font):
+def _render_dice_turn(screen, font, button_area_rect, rolling, start_time, message, button_x, button_y, button_width, button_height, is_hovered):
     """
-    Dibuja el área donde se muestra el resultado del dado.
-    :param screen: Superficie donde se dibuja.
-    :param message: Mensaje a mostrar en el área del dado.
-    :param font: Fuente del texto.
+    Renderiza la sección del dado, maneja la animación y el mensaje.
     """
-    dice_area_width = 300
-    dice_area_height = 150
-    dice_area_x = config.WINDOW_WIDTH // 2 - dice_area_width // 2
-    dice_area_y = config.WINDOW_HEIGHT // 2 - dice_area_height // 2 - 200  # Encima del botón
+    pygame.draw.rect(screen, config.colors["background"], button_area_rect, border_radius=10)
 
-    # Dibujar el área del dado
-    pygame.draw.rect(screen, config.colors["background"], (dice_area_x, dice_area_y, dice_area_width, dice_area_height), border_radius=10)
-    pygame.draw.rect(screen, config.colors["border"], (dice_area_x, dice_area_y, dice_area_width, dice_area_height), width=2, border_radius=10)
+    if rolling:
+        elapsed_time = pygame.time.get_ticks() - start_time
+        if elapsed_time < 3000:  # Lanzamiento de 3 segundos
+            current_roll = random.randint(1, 100)
+            message = str(current_roll)
+        else:
+            return random.randint(1, 100)  # Resultado final
 
-    # Dibujar el texto
+    # Dibujar el mensaje o resultado temporal
     message_text = font.render(message, True, config.colors["text"])
-    message_text_rect = message_text.get_rect(center=(dice_area_x + dice_area_width // 2, dice_area_y + dice_area_height // 2))
+    message_text_rect = message_text.get_rect(center=(button_area_rect.centerx, button_area_rect.centery - 40))
     screen.blit(message_text, message_text_rect)
 
-def process_dice_roll(dice_result):
-    """
-    Maneja el resultado del dado y ejecuta acciones basadas en el número obtenido.
-    """
-    print(f"Resultado del dado: {dice_result}")
+    # Crear el botón
+    draw_button(screen, button_x, button_y, button_width, button_height, "Tirar Dado", font, is_hovered=is_hovered)
+    return None
 
-    if dice_result <= 5:
-        print("Resultado bajo: Activar penalización.")
-        # Implementar la penalización aquí.
-    elif dice_result <= 15:
-        print("Resultado medio: Nada especial ocurre.")
-        # Acción neutral aquí.
-    else:
-        print("Resultado alto: Activar bonificación.")
-        # Implementar la bonificación aquí.
+def process_dice_roll(dice_result, player):
+    """
+    Maneja el resultado del dado, aplica efectos al jugador y devuelve un mensaje para la interfaz.
+    """
+    event = _get_dice_event(dice_result)
+    event["action"](player)  # Ejecutar la acción
+    print(f"Resultado del dado: {dice_result} -> {event['message']}")
+    return event["message"]
+
+def _get_dice_event(dice_result):
+    """
+    Obtiene el evento del dado basado en el rango del resultado.
+    """
+    dice_events = [
+        {"range": range(1, 6), "action": lambda p: setattr(p, "turn_skipped", True), "message": "Perdiste tu turno."},
+        {"range": range(6, 36), "action": lambda p: setattr(p, "stamina", p.stamina + 1), "message": "Ganaste 1 punto de estamina."},
+        {"range": range(36, 46), "action": lambda p: setattr(p, "stamina", p.stamina + 2), "message": "Ganaste 2 puntos de estamina."},
+        {"range": range(46, 51), "action": lambda p: setattr(p, "stamina", p.stamina + 3), "message": "Ganaste 3 puntos de estamina."},
+        {"range": range(51, 56), "action": lambda p: setattr(p, "life", max(0, p.life - 1)), "message": "Perdiste 1 vida."},
+        {"range": range(56, 96), "action": lambda p: None, "message": "No pasa nada."},
+        {"range": range(96, 101), "action": lambda p: setattr(p, "temp_shield", True), "message": "Obtienes un escudo temporal."},
+    ]
+
+    for event in dice_events:
+        if dice_result in event["range"]:
+            return event
+
+    return {"action": lambda p: None, "message": "Evento desconocido."}

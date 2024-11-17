@@ -5,7 +5,7 @@ from modules.ui import ui
 from modules.player import Player
 from modules.buttons import draw_button, handle_button_interaction, is_mouse_over_button
 import modules.game_logic as game_logic
-from modules.dice import process_dice_roll
+import modules.dice as dice
 import time
 
 def initialize_game():
@@ -122,14 +122,16 @@ def start_game(board, player, bot_board, bot):
 
         # Manejo de turnos de juego
         elif current_turn == "player_turn":
-            result = game_logic.draw_central_area(ui.screen, current_turn, process_dice_roll=process_dice_roll)
+            
+            current_turn = game_logic.draw_central_area(ui.screen, current_turn, message=None, player=player)
             ui.update_display()
-            print(f"Resultado del dado: {result}")
+            time.sleep(5) 
 
         elif current_turn == "bot_turn":
+            pass
             # Aquí iría la lógica del turno del bot
-            current_turn = "player_turn"
-            current_round += 1  # Incrementa la ronda al final del turno del bot
+            #current_turn = "player_turn"
+            #current_round += 1  # Incrementa la ronda al final del turno del bot
 
         # Manejo de eventos globales
         for event in pygame.event.get():
