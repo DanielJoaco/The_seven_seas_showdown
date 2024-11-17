@@ -9,7 +9,7 @@ class Board:
         self.start_x = config.board_x
         self.start_y = config.board_y
         self.grid = [[{"state": 0, "ship": None} for _ in range(self.board_size)] for _ in range(self.board_size)]
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = pygame.font.Font(config.font_bold, 12)
 
     def get_cell_color(self, cell_state):
         return config.colors.get(

@@ -3,7 +3,9 @@ from modules.config import config
 from modules.board import Board
 from modules.ui import ui
 from modules.player import Player
+from modules.buttons import draw_button, handle_button_interaction, is_mouse_over_button
 import modules.game_logic as game_logic
+from modules.dice import process_dice_roll
 import time
 
 def initialize_game():
@@ -17,32 +19,37 @@ def initialize_game():
 def main_menu():
     """Despliega el menú principal y maneja la navegación entre opciones."""
     ui.init_screen()
-    font = pygame.font.SysFont(None, 50)
+    font = pygame.font.Font(config.font_bold, 30)
 
     # Definir los botones del menú
     button_specs = [
-        (config.WINDOW_WIDTH // 2 - 110, 200, "Start Game", False),
-        (config.WINDOW_WIDTH // 2 - 110, 300, "Show Rules", False),
-        (config.WINDOW_WIDTH // 2 - 110, 400, "Show Settings", False),
-        (config.WINDOW_WIDTH // 2 - 110, 500, "Exit", False),
+        (config.WINDOW_WIDTH // 2 - 110, 200, 280, 60, "Start Game"),
+        (config.WINDOW_WIDTH // 2 - 110, 300, 280, 60, "Show Rules"),
+        (config.WINDOW_WIDTH // 2 - 110, 400, 280, 60, "Show Settings"),
+        (config.WINDOW_WIDTH // 2 - 110, 500, 280, 60, "Exit"),
     ]
+
     selected_index = 0  # Botón seleccionado por defecto
     last_input = "keyboard"  # Para rastrear la última fuente de entrada
 
     while True:
-        # Actualizar estado de los botones
-        for i in range(len(button_specs)):
-            button_specs[i] = button_specs[i][:3] + (i == selected_index,)
-
         ui.fill_background()
-        hovered_index = ui.render_menu(button_specs, font, 280, 60, 50)
+
+        # Obtener posición del mouse
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        # Dibujar los botones
+        for i, (x, y, width, height, text) in enumerate(button_specs):
+            is_hovered = is_mouse_over_button(mouse_x, mouse_y, x, y, width, height)
+            draw_button(ui.screen, x, y, width, height, text, font, is_hovered or i == selected_index)
+
         ui.update_display()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-            
+
             # Manejo de navegación con teclado
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
@@ -52,17 +59,18 @@ def main_menu():
                     selected_index = min(len(button_specs) - 1, selected_index + 1)
                     last_input = "keyboard"
                 elif event.key == pygame.K_RETURN:
-                    return button_specs[selected_index][2]  # Acción seleccionada
-            
+                    return button_specs[selected_index][4]  # Acción seleccionada
+
             # Manejo de interacción con mouse
+            hovered_index = handle_button_interaction(mouse_x, mouse_y, [(x, y, w, h) for x, y, w, h, _ in button_specs])
             if hovered_index is not None:
                 if last_input != "mouse" or hovered_index != selected_index:
                     selected_index = hovered_index
                     last_input = "mouse"
 
-            # Detección de clic para seleccionar
-            if event.type == pygame.MOUSEBUTTONDOWN and hovered_index is not None:
-                return button_specs[hovered_index][2]  # Acción seleccionada
+                # Detección de clic para seleccionar
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    return button_specs[hovered_index][4]  # Acción seleccionada
 
 def start_game(board, player, bot_board, bot):
     """Inicia el flujo principal del juego."""
@@ -114,8 +122,9 @@ def start_game(board, player, bot_board, bot):
 
         # Manejo de turnos de juego
         elif current_turn == "player_turn":
-            # Aquí iría la lógica del turno del jugador
-            pass
+            result = game_logic.draw_central_area(ui.screen, current_turn, process_dice_roll=process_dice_roll)
+            ui.update_display()
+            print(f"Resultado del dado: {result}")
 
         elif current_turn == "bot_turn":
             # Aquí iría la lógica del turno del bot
@@ -158,6 +167,8 @@ def show_settings():
 if __name__ == '__main__':
     pygame.init()
     pygame.font.init()
+    # Cargar el icono    
+    pygame.display.set_icon(config.icon)
 
     # Inicializar tableros y jugadores
     board, player, bot_board, bot = initialize_game()

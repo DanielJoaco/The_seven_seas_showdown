@@ -1,6 +1,7 @@
 import pygame
 from modules.config import config
 from modules.utils import is_within_bounds, handle_keyboard_navigation, handle_mouse_selection
+from modules.dice import dice_turn
 
 def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
     """
@@ -21,8 +22,8 @@ def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
         draw_game_state(screen, player, bot, player_board, bot_board, "placing_player_ships", 0)
 
         # Mensaje central sobre el barco actual
-        message = f"{player.name}, coloca tu {ship.name} ({current_ship_index + 1}/{len(player_fleet)})"
-        draw_central_area(screen, message)
+        message = f"{player.name}, coloca tu {ship.name}"
+        draw_central_area(screen, "", message)
 
         # Dibuja la vista previa del barco
         draw_ship_preview(screen, player_board, ship.size, selected_row, selected_col, orientation)
@@ -83,8 +84,8 @@ def draw_game_state(screen, player, bot, player_board, bot_board, current_turn, 
     """
     Dibuja el estado actual del juego con la información de los jugadores y tableros.
     """
-    font_title = pygame.font.SysFont(None, 60)
-    font_info = pygame.font.SysFont(None, 40)
+    font_title = pygame.font.Font(config.font_bold, 54)
+    font_info = pygame.font.Font(config.font_regular, 32)
 
     # Título del estado del juego
     game_state_title = {
@@ -127,11 +128,11 @@ def draw_game_state(screen, player, bot, player_board, bot_board, current_turn, 
     draw_empty_board(screen, bot_board)
 
     # Mensaje central
-    draw_central_area(screen)
+    draw_central_area(screen, "")
 
-def draw_central_area(screen, message=None):
+def draw_central_area(screen, current_turn, message=None, process_dice_roll=None):
     """
-    Dibuja el área central para mostrar mensajes.
+    Dibuja el área central para mostrar mensajes o botones según el turno.
     """
     button_area_width = 300
     button_area_height = 150
@@ -139,10 +140,15 @@ def draw_central_area(screen, message=None):
     button_area_y = config.WINDOW_HEIGHT // 2 - button_area_height // 2
     button_area_rect = pygame.Rect((button_area_x, button_area_y, button_area_width, button_area_height))
 
+    # Dibuja el área central
     pygame.draw.rect(screen, config.colors["background"], button_area_rect, border_radius=10)
 
-    if message:
-        font_button = pygame.font.SysFont(None, 30)
+    if current_turn == "player_turn" and process_dice_roll:
+        # Llamar a `dice_turn` para manejar el lanzamiento del dado
+        dice_turn(screen, "Tu turno: tira el dado", button_area_rect, process_dice_roll)
+    elif message:
+        # Mostrar un mensaje si no es el turno del dado
+        font_button = pygame.font.Font(config.font_regular, 24)
         message_text = font_button.render(message, True, config.colors["text"])
         message_text_rect = message_text.get_rect(center=button_area_rect.center)
         screen.blit(message_text, message_text_rect)
