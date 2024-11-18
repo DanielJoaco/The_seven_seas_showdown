@@ -1,5 +1,5 @@
 import pygame
-from .config import config
+from modules.config import config
 
 class Board:
     def __init__(self, board_size=20):
@@ -12,12 +12,13 @@ class Board:
         self.font = pygame.font.Font(config.font_bold, 12)
 
     def get_cell_color(self, cell_state):
+        """Obtiene el color de una celda basado en su estado."""
         return config.colors.get(
             {
-                0: "cell",
-                1: "selected_cell",
-                2: "water",
-                3: "hit",
+                0: "cell",          # Agua no atacada
+                1: "selected_cell", # Barco no atacado
+                2: "water",         # Agua atacada
+                3: "hit",           # Barco atacado
             }.get(cell_state, "cell")
         )
 
@@ -50,6 +51,7 @@ class Board:
                 pygame.draw.rect(screen, config.colors["border"], pygame.Rect(x, y, self.cell_size, self.cell_size), width=config.BORDER_WIDTH)
 
     def update_cell(self, row, col, state, ship=None):
+        """Actualiza el estado de una celda específica en el tablero."""
         if 0 <= row < self.board_size and 0 <= col < self.board_size:
             self.grid[row][col]["state"] = state
             self.grid[row][col]["ship"] = ship

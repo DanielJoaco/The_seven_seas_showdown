@@ -1,5 +1,5 @@
 import pygame
-from .config import config
+from modules.config import config
 
 class UI:
     def __init__(self):
@@ -29,7 +29,7 @@ class UI:
             is_active = selected or is_hovered
 
             # Colores según el estado
-            button_color = config.colors["selected_cell"] if is_active else config.colors["cell"]
+            button_color = config.colors["hovered_button"] if is_active else config.colors["button"]
             border_color = config.colors["selected_border"] if is_active else config.colors["border"]
 
             # Dibujar el botón

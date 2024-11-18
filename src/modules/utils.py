@@ -7,10 +7,23 @@ def is_within_bounds(row, col, board_size):
     """
     return 0 <= row < board_size and 0 <= col < board_size
 
+def handle_navigation_and_selection(event, selected_row, selected_col, board_size, cell_size, start_x, start_y):
+    """
+    Maneja navegación y selección con teclado y mouse en el tablero.
+    """
+    if event.type == pygame.KEYDOWN:
+        return handle_keyboard_navigation(event, selected_row, selected_col, board_size, board_size)
+
+    elif event.type in [pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN]:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        if start_x <= mouse_x < start_x + board_size * cell_size and start_y <= mouse_y < start_y + board_size * cell_size:
+            return (mouse_y - start_y) // cell_size, (mouse_x - start_x) // cell_size
+
+    return selected_row, selected_col
+
 def handle_keyboard_navigation(event, selected_row, selected_col, max_row, max_col):
     """
     Maneja la navegación en un tablero o lista usando las teclas de flecha.
-    Devuelve las nuevas coordenadas seleccionadas (fila y columna).
     """
     if event.key == pygame.K_UP:
         selected_row = max(0, selected_row - 1)
@@ -20,7 +33,6 @@ def handle_keyboard_navigation(event, selected_row, selected_col, max_row, max_c
         selected_col = max(0, selected_col - 1)
     elif event.key == pygame.K_RIGHT:
         selected_col = min(max_col - 1, selected_col + 1)
-    
     return selected_row, selected_col
 
 def handle_mouse_selection(event, start_x, start_y, cell_size, board_size):
@@ -45,7 +57,7 @@ def place_ship_on_board(board, ship, start_row, start_col, orientation):
         col = start_col + (i if orientation == "H" else 0)
         board.grid[row][col]["state"] = 1
         board.grid[row][col]["ship"] = ship.name
-        
+
 def can_place_ship(board, size, start_row, start_col, orientation):
     """
     Verifica si un barco puede ser colocado en la posición indicada.
@@ -57,32 +69,6 @@ def can_place_ship(board, size, start_row, start_col, orientation):
             return False
     return True
 
-
-def handle_navigation_and_selection(event, selected_row, selected_col, board_size, cell_size, start_x, start_y):
-    """
-    Maneja navegación y selección con teclado y mouse en el tablero.
-    """
-    if event.type == pygame.KEYDOWN:
-        # Manejar navegación con teclado
-        if event.key == pygame.K_UP:
-            selected_row = max(0, selected_row - 1)
-        elif event.key == pygame.K_DOWN:
-            selected_row = min(board_size - 1, selected_row + 1)
-        elif event.key == pygame.K_LEFT:
-            selected_col = max(0, selected_col - 1)
-        elif event.key == pygame.K_RIGHT:
-            selected_col = min(board_size - 1, selected_col + 1)
-
-    elif event.type == pygame.MOUSEMOTION or event.type == pygame.MOUSEBUTTONDOWN:
-        # Manejar selección con mouse
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        if start_x <= mouse_x < start_x + board_size * cell_size and start_y <= mouse_y < start_y + board_size * cell_size:
-            selected_col = (mouse_x - start_x) // cell_size
-            selected_row = (mouse_y - start_y) // cell_size
-
-    return selected_row, selected_col
-
-
 def draw_panel(screen, x, y, width, height, info, font):
     """
     Dibuja un panel de información en la pantalla.
@@ -91,7 +77,6 @@ def draw_panel(screen, x, y, width, height, info, font):
     for i, (key, value) in enumerate(info.items()):
         text = font.render(f"{key}: {value}", True, config.colors["text"])
         screen.blit(text, (x + 10, y + 10 + i * 40))
-
 
 def draw_empty_board(screen, board):
     """
@@ -103,4 +88,3 @@ def draw_empty_board(screen, board):
             y = board.start_y + row * board.cell_size
             pygame.draw.rect(screen, config.colors["cell"], (x, y, board.cell_size, board.cell_size), 0)
             pygame.draw.rect(screen, config.colors["border"], (x, y, board.cell_size, board.cell_size), 1)
-

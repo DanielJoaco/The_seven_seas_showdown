@@ -2,16 +2,17 @@ import pygame
 import time
 from modules.config import config
 from modules.utils import (
-    is_within_bounds,
     handle_navigation_and_selection,
-    place_ship_on_board,
     can_place_ship,
     draw_panel,
     draw_empty_board,
+    place_ship_on_board,
+    handle_mouse_selection
 )
 from modules.dice import dice_turn, process_dice_roll
-from modules.buttons  import draw_action_buttons, is_mouse_over_button, handle_button_interaction
+from modules.buttons import draw_action_buttons, is_mouse_over_button
 from modules.ui import ui
+import modules.attacks_logic as attacks_logic
 
 
 def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
@@ -32,7 +33,16 @@ def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
         draw_game_state(screen, player, bot, player_board, bot_board, "placing_player_ships", 0)
 
         # Mensaje central
-        draw_central_area(screen,  "", f"{player.name}, coloca tu {ship.name}")
+        draw_central_area(
+            screen,
+            "placing_player_ships",
+            player=player,
+            bot_board=None,  # No se necesita el tablero del bot aquí
+            selected_row=selected_row,
+            selected_col=selected_col,
+            message=f"{player.name}, coloca tu {ship.name}",
+        )
+
 
         # Vista previa del barco
         draw_ship_preview(screen, player_board, ship.size, selected_row, selected_col, orientation)
@@ -87,7 +97,7 @@ def draw_ship_preview(screen, board, size, start_row, start_col, orientation):
     for i in range(size):
         row = start_row + (i if orientation == "V" else 0)
         col = start_col + (i if orientation == "H" else 0)
-        if is_within_bounds(row, col, board.board_size):
+        if 0 <= row < board.board_size and 0 <= col < board.board_size:
             x = board.start_x + col * board.cell_size
             y = board.start_y + row * board.cell_size
             pygame.draw.rect(screen, color, (x, y, board.cell_size, board.cell_size), 0)
@@ -133,7 +143,7 @@ def draw_game_state(screen, player, bot, player_board, bot_board, current_turn, 
     draw_empty_board(screen, bot_board)
 
 
-def draw_central_area(screen, current_turn, player=None, message=None):
+def draw_central_area(screen, current_turn, player=None, bot_board=None, selected_row=None, selected_col=None, message=None):
     """
     Maneja la lógica del área central del turno, renderizando los botones y el mensaje.
     """
@@ -185,10 +195,17 @@ def draw_central_area(screen, current_turn, player=None, message=None):
             # Renderizar botones de acción            
             action = draw_action_buttons(screen, button_area_rect, player)
             ui.update_display()
+
             if action:
-                print(f"Acción seleccionada: {action}")
-                # Implementar lógica basada en `action`
-                return "bot_turn"  # Cambiar al estado de realizar acción
+                # Seleccionar la celda objetivo (si es necesario)
+                if action in ["normal_attack", "line_attack", "square_attack"]:
+                    selected_row, selected_col = select_target_cell(screen, bot_board)
+                # Ejecutar la acción
+                result = attacks_logic.handle_action(action, player, bot_board, selected_row, selected_col)
+                if isinstance(result, str):
+                    print(result)  # Mensaje de resultado (por ejemplo, "Estamina insuficiente").
+                elif result == "bot_turn":
+                    current_turn = "bot_turn"
 
     if message:
         font = pygame.font.Font(config.font_regular, 24)
@@ -197,4 +214,59 @@ def draw_central_area(screen, current_turn, player=None, message=None):
         screen.blit(message_text, message_text_rect)
 
     return current_turn  # Mantener el estado actual si no hay cambios
+
+
+def select_target_cell(screen, opponent_board):
+    """
+    Permite al jugador seleccionar una celda objetivo en el tablero del oponente.
+    Devuelve las coordenadas seleccionadas (fila, columna).
+    """
+    selected_row, selected_col = 0, 0
+    clock = pygame.time.Clock()
+
+    while True:
+        screen.fill(config.colors["background"])
+        opponent_board.draw(screen, selected_row, selected_col)
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            # Navegación con teclado
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    selected_row = max(0, selected_row - 1)
+                elif event.key == pygame.K_DOWN:
+                    selected_row = min(opponent_board.board_size - 1, selected_row + 1)
+                elif event.key == pygame.K_LEFT:
+                    selected_col = max(0, selected_col - 1)
+                elif event.key == pygame.K_RIGHT:
+                    selected_col = min(opponent_board.board_size - 1, selected_col + 1)
+                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):  # Confirmar selección
+                    return selected_row, selected_col
+
+            # Selección con mouse
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                if is_mouse_over_board(mouse_x, mouse_y, opponent_board):
+                    selected_row, selected_col = handle_mouse_selection(
+                        event, opponent_board.start_x, opponent_board.start_y, opponent_board.cell_size, opponent_board.board_size
+                    )
+                    return selected_row, selected_col
+
+        clock.tick(60)
+
+
+def is_mouse_over_board(mouse_x, mouse_y, board):
+    """
+    Verifica si el mouse está sobre el área del tablero.
+    """
+    board_width = board.cell_size * board.board_size
+    board_height = board.cell_size * board.board_size
+    return (
+        board.start_x <= mouse_x <= board.start_x + board_width and
+        board.start_y <= mouse_y <= board.start_y + board_height
+    )
 

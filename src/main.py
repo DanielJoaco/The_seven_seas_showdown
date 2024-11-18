@@ -4,9 +4,9 @@ from modules.board import Board
 from modules.ui import ui
 from modules.player import Player
 from modules.buttons import draw_button, handle_button_interaction, is_mouse_over_button
-import modules.game_logic as game_logic
-import modules.dice as dice
+from modules.game_logic import place_ships, draw_game_state, draw_central_area
 import time
+
 
 def initialize_game():
     """Inicializa los elementos principales del juego: tableros y jugadores."""
@@ -15,6 +15,7 @@ def initialize_game():
     bot_board = Board(15)
     bot = Player("Bot", bot_board)
     return board, player, bot_board, bot
+
 
 def main_menu():
     """Despliega el menú principal y maneja la navegación entre opciones."""
@@ -72,68 +73,60 @@ def main_menu():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     return button_specs[hovered_index][4]  # Acción seleccionada
 
+
 def start_game(board, player, bot_board, bot):
     """Inicia el flujo principal del juego."""
     running = True
     current_turn = "placing_player_ships"  # Estado inicial del juego
     current_round = 1  # Ronda inicial
 
-    # Configurar posiciones iniciales de los tableros
-    board.start_x = 50
-    board.start_y = config.WINDOW_HEIGHT // 2 - board.pixel_size // 2 + 100
-
-    bot_board.start_x = config.WINDOW_WIDTH - bot_board.pixel_size - 50
-    bot_board.start_y = config.WINDOW_HEIGHT // 2 - bot_board.pixel_size // 2 + 100
-
     while running:
         # Limpia la pantalla y dibuja el estado actual del juego
         ui.fill_background()
-        game_logic.draw_game_state(
-            ui.screen,
-            player,
-            bot,
-            board,
-            bot_board,
-            current_turn,
-            current_round,
-        )
+        draw_game_state(ui.screen, player, bot, board, bot_board, current_turn, current_round)
         ui.update_display()
 
         # Flujo de colocación de barcos
         if current_turn == "placing_player_ships":
-            # Permite al jugador colocar sus barcos
-            if game_logic.place_ships(ui.screen, board, player.fleet, player, bot, bot_board):
+            if place_ships(ui.screen, board, player.fleet, player, bot, bot_board):
                 # Cambiar al estado de colocación de barcos del bot
                 current_turn = "placing_bot_ships"
                 ui.fill_background()
-                game_logic.draw_game_state(
-                    ui.screen,
-                    player,
-                    bot,
-                    board,
-                    bot_board,
-                    current_turn,
-                    current_round,
-                )
+                draw_game_state(ui.screen, player, bot, board, bot_board, current_turn, current_round)
                 ui.update_display()
-                time.sleep(1)  # Simula el tiempo que toma el bot en colocar barcos
+                time.sleep(1)
                 bot.place_fleet_randomly()
                 current_turn = "player_turn"
 
-        # Manejo de turnos de juego
+        # Flujo del turno del jugador
         elif current_turn == "player_turn":
-            
-            game_logic.draw_central_area(ui.screen, current_turn, message=None, player=player)
+            current_turn = draw_central_area(
+                ui.screen,
+                current_turn,
+                player=player,
+                bot_board=bot_board,  # Tablero del bot, necesario para ataques
+            )
             ui.update_display()
-            time.sleep(1)
-            current_turn = "player_turn_attack"
-            current_turn = game_logic.draw_central_area(ui.screen, current_turn, message=None, player=player)
 
+        # Flujo del ataque del jugador
+        elif current_turn == "player_turn_attack":
+            selected_row, selected_col = 0, 0  # Inicializa la celda seleccionada por defecto
+            current_turn = draw_central_area(
+                ui.screen,
+                current_turn,
+                player=player,
+                bot_board=bot_board,  # Tablero del bot
+                selected_row=selected_row,
+                selected_col=selected_col,  # Coordenadas para las acciones
+            )
+
+
+        # Flujo del turno del bot
         elif current_turn == "bot_turn":
-            pass
-            # Aquí iría la lógica del turno del bot
-            #current_turn = "player_turn"
-            #current_round += 1  # Incrementa la ronda al final del turno del bot
+            # Aquí iría la lógica del turno del bot (pendiente de implementación)
+            time.sleep(1)  # Simula el tiempo de acción del bot
+            current_turn = "player_turn"
+            current_round += 1
 
         # Manejo de eventos globales
         for event in pygame.event.get():
@@ -142,7 +135,8 @@ def start_game(board, player, bot_board, bot):
                 exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    running = False  # Salir del juego
+                    running = False
+
 
 def show_rules():
     """Despliega las reglas del juego."""
@@ -156,6 +150,7 @@ def show_rules():
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False  # Salir del bucle de reglas
 
+
 def show_settings():
     """Muestra las configuraciones del juego."""
     running = True
@@ -168,10 +163,12 @@ def show_settings():
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False  # Salir del bucle de configuraciones
 
+
 if __name__ == '__main__':
     pygame.init()
     pygame.font.init()
-    # Cargar el icono    
+
+    # Configurar el icono de la ventana
     pygame.display.set_icon(config.icon)
 
     # Inicializar tableros y jugadores
@@ -180,7 +177,7 @@ if __name__ == '__main__':
     while True:
         # Mostrar menú principal y capturar la acción seleccionada
         action = main_menu()
-        
+
         if action == "Start Game":
             start_game(board, player, bot_board, bot)
         elif action == "Show Rules":
