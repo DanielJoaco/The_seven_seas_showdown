@@ -10,6 +10,8 @@ from modules.utils import (
     draw_empty_board,
 )
 from modules.dice import dice_turn, process_dice_roll
+from modules.buttons  import draw_action_buttons, is_mouse_over_button, handle_button_interaction
+from modules.ui import ui
 
 
 def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
@@ -106,6 +108,7 @@ def draw_game_state(screen, player, bot, player_board, bot_board, current_turn, 
         "player_turn": "Turno del jugador",
         "bot_turn": "Turno del bot",
         "game_over": "Juego terminado",
+        "player_turn_attack": "Jugador atacando",
     }[current_turn]
     title_text = font_title.render(title, True, config.colors["text"])
     title_rect = title_text.get_rect(center=(config.WINDOW_WIDTH // 2, 40))
@@ -130,25 +133,68 @@ def draw_game_state(screen, player, bot, player_board, bot_board, current_turn, 
     draw_empty_board(screen, bot_board)
 
 
-def draw_central_area(screen, current_turn, message=None, player=None ):
+def draw_central_area(screen, current_turn, player=None, message=None):
+    """
+    Maneja la lógica del área central del turno, renderizando los botones y el mensaje.
+    """
     button_area_width = 300
     button_area_height = 150
     button_area_x = config.WINDOW_WIDTH // 2 - button_area_width // 2
     button_area_y = config.WINDOW_HEIGHT // 2 - button_area_height // 2
     button_area_rect = pygame.Rect(button_area_x, button_area_y, button_area_width, button_area_height)
 
+    # Dibujar el área central
     pygame.draw.rect(screen, config.colors["background"], button_area_rect, border_radius=10)
 
     if current_turn == "player_turn" and player:
         dice_result = dice_turn(screen, "Tu turno: tira el dado", button_area_rect)
-        message = process_dice_roll(dice_result, player)        
-        current_turn = "bot_turn"
+        message = process_dice_roll(dice_result, player)
+        current_turn = "player_turn_attack"  # Cambiar al estado de ataque
+
+    elif current_turn == "player_turn_attack":
+        if player.turn_skipped:
+            # Mostrar mensaje "Perdiste el turno"
+            font = pygame.font.Font(config.font_regular, 24)
+            message = "Perdiste el turno"
+            message_text = font.render(message, True, config.colors["text"])
+            message_text_rect = message_text.get_rect(center=(button_area_rect.centerx, button_area_rect.centery - 30))
+            screen.blit(message_text, message_text_rect)
+
+            # Botón "Finalizar turno"
+            button_x = button_area_rect.centerx - 70
+            button_y = button_area_rect.centery + 10
+            button_width = 140
+            button_height = 50
+
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            is_hovered = is_mouse_over_button(mouse_x, mouse_y, button_x, button_y, button_width, button_height)
+
+            button_color = config.colors["hovered_button"] if is_hovered else config.colors["button"]
+            pygame.draw.rect(screen, button_color, (button_x, button_y, button_width, button_height), border_radius=10)
+
+            button_font = pygame.font.Font(config.font_regular, 20)
+            button_text = button_font.render("Finalizar turno", True, config.colors["text"])
+            button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+            screen.blit(button_text, button_text_rect)
+
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and is_hovered:
+                    player.turn_skipped = False  # Resetear el estado del jugador
+                    return "bot_turn"  # Cambiar el estado al turno del bot
+        else:
+            # Renderizar botones de acción            
+            action = draw_action_buttons(screen, button_area_rect, player)
+            ui.update_display()
+            if action:
+                print(f"Acción seleccionada: {action}")
+                # Implementar lógica basada en `action`
+                return "bot_turn"  # Cambiar al estado de realizar acción
 
     if message:
         font = pygame.font.Font(config.font_regular, 24)
         message_text = font.render(message, True, config.colors["text"])
         message_text_rect = message_text.get_rect(center=button_area_rect.center)
         screen.blit(message_text, message_text_rect)
-        
-        
-    return current_turn
+
+    return current_turn  # Mantener el estado actual si no hay cambios
+

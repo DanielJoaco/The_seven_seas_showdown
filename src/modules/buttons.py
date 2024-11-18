@@ -1,6 +1,6 @@
 import pygame
 from modules.config import config
-
+from modules.ui import ui
 
 def draw_button(screen, x, y, width, height, text, font, is_hovered=False):
     """
@@ -52,3 +52,85 @@ def handle_button_interaction(mouse_x, mouse_y, buttons):
         if is_mouse_over_button(mouse_x, mouse_y, x, y, width, height):
             return index
     return None
+
+def draw_action_buttons(screen, button_area_rect, player):
+    """
+    Genera y maneja la lógica de los botones de acción.
+    """
+    font = pygame.font.Font(config.font_regular, 20)
+
+    # Configuración centralizada para botones
+    button_config = {
+        "width": 120,
+        "height": 40,
+        "horizontal_spacing": 20,
+        "vertical_spacing": 10,
+        "positions": [
+            (button_area_rect.x + 20, button_area_rect.y + 20),
+            (button_area_rect.x + 160, button_area_rect.y + 20),
+            (button_area_rect.x + 20, button_area_rect.y + 70),
+            (button_area_rect.x + 160, button_area_rect.y + 70),
+            (button_area_rect.x + 90, button_area_rect.y + 120),
+        ],
+    }
+
+    clock = pygame.time.Clock()
+
+    # Botones de ataque y acciones
+    buttons = [
+        {"label": "A. Normal", "cost": 0, "action": "normal_attack"},
+        {"label": "A. Lineal", "cost": 3, "action": "line_attack"},
+        {"label": "A. Cuadrado", "cost": 4, "action": "square_attack"},
+        {"label": "Radar", "cost": 4, "action": "use_radar"},
+        {"label": "Escudo", "cost": 3, "action": "use_shield"},
+    ]
+
+    while True:  # Esperar hasta que el jugador seleccione un botón
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        clicked_action = None  # Mantiene la acción seleccionada, si ocurre
+
+        # Dibuja cada botón
+        for button, (x, y) in zip(buttons, button_config["positions"]):
+            is_hovered = is_mouse_over_button(
+                mouse_x, mouse_y, x, y, button_config["width"], button_config["height"]
+            )
+            is_disabled = player.stamina < button["cost"]
+
+            # Cambia el color según el estado
+            color = (
+                config.colors["disabled_button"]
+                if is_disabled
+                else config.colors["button"]
+            )
+            if is_hovered and not is_disabled:
+                color = config.colors["hovered_button"]
+
+            # Dibuja el botón
+            pygame.draw.rect(
+                screen,
+                color,
+                (x, y, button_config["width"], button_config["height"]),
+                border_radius=10,
+            )
+            button_text = font.render(button["label"], True, config.colors["text"])
+            button_text_rect = button_text.get_rect(
+                center=(x + button_config["width"] // 2, y + button_config["height"] // 2)
+            )
+            screen.blit(button_text, button_text_rect)
+
+        ui.update_display()
+
+        # Manejo de eventos
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for button, (x, y) in zip(buttons, button_config["positions"]):
+                    if is_mouse_over_button(
+                        mouse_x, mouse_y, x, y, button_config["width"], button_config["height"]
+                    ):
+                        if player.stamina >= button["cost"]:  # Solo selecciona si tiene estamina suficiente
+                            return button["action"]  # Retorna la acción seleccionada
+
+        clock.tick(60)

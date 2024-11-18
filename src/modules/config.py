@@ -14,7 +14,9 @@ class Config:
         self.colors = {
             "background": (34, 87, 122),
             "cell": (53, 172, 120),
+            "button": (53, 172, 120),
             "selected_cell": (199, 249, 204),
+            "hovered_button": (199, 249, 204),
             "border": (0, 0, 0),
             "selected_border": (255, 255, 255),
             "text": (229, 88, 18),

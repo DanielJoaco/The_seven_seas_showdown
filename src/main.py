@@ -116,16 +116,18 @@ def start_game(board, player, bot_board, bot):
                     current_round,
                 )
                 ui.update_display()
-                time.sleep(5)  # Simula el tiempo que toma el bot en colocar barcos
+                time.sleep(1)  # Simula el tiempo que toma el bot en colocar barcos
                 bot.place_fleet_randomly()
                 current_turn = "player_turn"
 
         # Manejo de turnos de juego
         elif current_turn == "player_turn":
             
-            current_turn = game_logic.draw_central_area(ui.screen, current_turn, message=None, player=player)
+            game_logic.draw_central_area(ui.screen, current_turn, message=None, player=player)
             ui.update_display()
-            time.sleep(5) 
+            time.sleep(1)
+            current_turn = "player_turn_attack"
+            current_turn = game_logic.draw_central_area(ui.screen, current_turn, message=None, player=player)
 
         elif current_turn == "bot_turn":
             pass

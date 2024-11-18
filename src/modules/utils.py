@@ -103,3 +103,4 @@ def draw_empty_board(screen, board):
             y = board.start_y + row * board.cell_size
             pygame.draw.rect(screen, config.colors["cell"], (x, y, board.cell_size, board.cell_size), 0)
             pygame.draw.rect(screen, config.colors["border"], (x, y, board.cell_size, board.cell_size), 1)
+
