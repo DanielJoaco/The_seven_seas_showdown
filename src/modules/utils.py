@@ -88,3 +88,30 @@ def draw_empty_board(screen, board):
             y = board.start_y + row * board.cell_size
             pygame.draw.rect(screen, config.colors["cell"], (x, y, board.cell_size, board.cell_size), 0)
             pygame.draw.rect(screen, config.colors["border"], (x, y, board.cell_size, board.cell_size), 1)
+
+def display_message(screen, message):
+    """
+    Muestra un mensaje en el área central de la pantalla.
+    
+    :param screen: Superficie de Pygame para dibujar.
+    :param message: Texto del mensaje a mostrar.
+    """
+    button_area_width = 300
+    button_area_height = 150
+    button_area_x = config.WINDOW_WIDTH // 2 - button_area_width // 2
+    button_area_y = config.WINDOW_HEIGHT // 2 - button_area_height // 2
+    button_area_rect = pygame.Rect(button_area_x, button_area_y, button_area_width, button_area_height)
+
+    # Dibujar el fondo del mensaje
+    pygame.draw.rect(screen, config.colors["background"], button_area_rect, border_radius=10)
+    pygame.draw.rect(screen, config.colors["border"], button_area_rect, width=4, border_radius=10)
+
+    # Renderizar el texto del mensaje
+    font = pygame.font.Font(config.font_regular, 24)
+    message_text = font.render(message, True, config.colors["text"])
+    message_text_rect = message_text.get_rect(center=(button_area_rect.centerx, button_area_rect.centery))
+    screen.blit(message_text, message_text_rect)
+    
+    # Actualizar la pantalla para mostrar el mensaje
+    pygame.display.flip()
+    pygame.time.delay(1500)  # Mostrar el mensaje durante 1.5 segundos

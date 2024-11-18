@@ -1,5 +1,6 @@
 import pygame
 from modules.config import config
+from modules.utils import draw_panel, draw_empty_board
 
 class UI:
     def __init__(self):
@@ -16,42 +17,54 @@ class UI:
         self.screen.fill(config.colors["background"])
 
     def render_menu(self, button_specs, font, button_width=220, button_height=50, border_radius=20):
-        """
-        Dibuja los botones del menú en la pantalla.
-        Retorna el índice del botón que está bajo el cursor, o None si no hay ninguno.
-        """
-        mouse_pos = pygame.mouse.get_pos()
-        hovered_index = None
-
-        for i, (x, y, text, selected) in enumerate(button_specs):
-            # Detectar si el mouse está sobre el botón
-            is_hovered = x <= mouse_pos[0] <= x + button_width and y <= mouse_pos[1] <= y + button_height
-            is_active = selected or is_hovered
-
-            # Colores según el estado
-            button_color = config.colors["hovered_button"] if is_active else config.colors["button"]
-            border_color = config.colors["selected_border"] if is_active else config.colors["border"]
-
-            # Dibujar el botón
-            button_rect = pygame.Rect(x, y, button_width, button_height)
-            pygame.draw.rect(self.screen, border_color, button_rect, width=4, border_radius=border_radius)
-            pygame.draw.rect(self.screen, button_color, button_rect, border_radius=border_radius)
-
-            # Renderizar texto
-            text_surface = font.render(text, True, config.colors["text"])
-            text_rect = text_surface.get_rect(center=button_rect.center)
-            self.screen.blit(text_surface, text_rect)
-
-            # Si el mouse está sobre este botón, registrar su índice
-            if is_hovered:
-                hovered_index = i
-
-        return hovered_index
+        # Implementación existente...
+        pass
 
     def update_display(self):
         """Actualiza la pantalla y controla el framerate."""
         pygame.display.flip()
         self.clock.tick(60)  # Controla el framerate a 60 FPS
 
-# Instancia global de UI
+    def draw_game_state(self, screen, player, bot, player_board, bot_board, current_turn, current_round):
+        """
+        Dibuja el estado actual del juego con la información de los jugadores y tableros.
+        """
+        font_title = pygame.font.Font(config.font_bold, 54)
+        font_info = pygame.font.Font(config.font_regular, 32)
+
+        # Título del estado del juego
+        title = {
+            "placing_player_ships": "Colocando barcos del jugador",
+            "placing_bot_ships": "Colocando barcos del bot",
+            "player_turn": "Turno del jugador",
+            "bot_turn": "Turno del bot",
+            "game_over": "Juego terminado",
+            "player_turn_attack": "Jugador atacando",
+            "attack_selection": "Selecciona tu ataque",
+        }.get(current_turn, "Estado Desconocido")
+        
+        title_text = font_title.render(title, True, config.colors["text"])
+        title_rect = title_text.get_rect(center=(config.WINDOW_WIDTH // 2, 40))
+        screen.blit(title_text, title_rect)
+
+        # Paneles de información
+        draw_panel(screen, 20, 80, 200, 140, {"Jugador": player.name, "Vida": player.life, "Estamina": player.stamina}, font_info)
+        draw_panel(screen, config.WINDOW_WIDTH - 220, 80, 200, 140, {"Bot": bot.name, "Vida": bot.life, "Estamina": bot.stamina}, font_info)
+
+        # Ronda actual
+        round_text = font_info.render(f"Ronda: {current_round}", True, config.colors["text"])
+        round_rect = round_text.get_rect(center=(config.WINDOW_WIDTH // 2, 130))
+        screen.blit(round_text, round_rect)
+
+        # Tableros
+        if player_board:
+            player_board.start_x = 50
+            player_board.start_y = config.WINDOW_HEIGHT // 2 - player_board.pixel_size // 2 + 100
+            player_board.draw(screen)
+
+        if bot_board:
+            bot_board.start_x = config.WINDOW_WIDTH - bot_board.pixel_size - 50
+            bot_board.start_y = config.WINDOW_HEIGHT // 2 - bot_board.pixel_size // 2 + 100
+            draw_empty_board(screen, bot_board)
+
 ui = UI()

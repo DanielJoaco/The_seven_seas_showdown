@@ -4,7 +4,7 @@ from modules.board import Board
 from modules.ui import ui
 from modules.player import Player
 from modules.buttons import draw_button, handle_button_interaction, is_mouse_over_button
-from modules.game_logic import place_ships, draw_game_state, draw_central_area
+from modules.game_logic import place_ships, draw_central_area
 import time
 
 
@@ -83,7 +83,7 @@ def start_game(board, player, bot_board, bot):
     while running:
         # Limpia la pantalla y dibuja el estado actual del juego
         ui.fill_background()
-        draw_game_state(ui.screen, player, bot, board, bot_board, current_turn, current_round)
+        ui.draw_game_state(ui.screen, player, bot, board, bot_board, current_turn, current_round)
         ui.update_display()
 
         # Flujo de colocación de barcos
@@ -92,7 +92,7 @@ def start_game(board, player, bot_board, bot):
                 # Cambiar al estado de colocación de barcos del bot
                 current_turn = "placing_bot_ships"
                 ui.fill_background()
-                draw_game_state(ui.screen, player, bot, board, bot_board, current_turn, current_round)
+                ui.draw_game_state(ui.screen, player, bot, board, bot_board, current_turn, current_round)
                 ui.update_display()
                 time.sleep(1)
                 bot.place_fleet_randomly()
@@ -104,6 +104,7 @@ def start_game(board, player, bot_board, bot):
                 ui.screen,
                 current_turn,
                 player=player,
+                bot=bot,  # Pasar el objeto bot
                 bot_board=bot_board,  # Tablero del bot, necesario para ataques
             )
             ui.update_display()
@@ -115,11 +116,11 @@ def start_game(board, player, bot_board, bot):
                 ui.screen,
                 current_turn,
                 player=player,
+                bot=bot,  # Pasar el objeto bot
                 bot_board=bot_board,  # Tablero del bot
                 selected_row=selected_row,
                 selected_col=selected_col,  # Coordenadas para las acciones
             )
-
 
         # Flujo del turno del bot
         elif current_turn == "bot_turn":

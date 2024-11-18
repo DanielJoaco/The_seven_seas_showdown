@@ -14,6 +14,7 @@ class Player:
         self.placed_ships = []  # Coordenadas ocupadas por barcos
         self.turn_skipped = False  # Bandera para saltar turno
         self.temp_shield = False  # Bandera para escudo temporal
+        self.attack_board = [[{"color": None, "state": 0} for _ in range(board.board_size)] for _ in range(board.board_size)]
 
     def place_fleet_randomly(self):
         """Coloca toda la flota aleatoriamente en el tablero."""

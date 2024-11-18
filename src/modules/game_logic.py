@@ -14,7 +14,6 @@ from modules.buttons import draw_action_buttons, is_mouse_over_button
 from modules.ui import ui
 import modules.attacks_logic as attacks_logic
 
-
 def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
     """
     Permite al jugador colocar barcos en su tablero.
@@ -30,7 +29,7 @@ def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
         ship = player_fleet[current_ship_index]
 
         # Dibuja el estado del juego
-        draw_game_state(screen, player, bot, player_board, bot_board, "placing_player_ships", 0)
+        ui.draw_game_state(screen, player, bot, player_board, bot_board, "placing_player_ships", 0)
 
         # Mensaje central
         draw_central_area(
@@ -86,7 +85,6 @@ def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
 
     return True
 
-
 def draw_ship_preview(screen, board, size, start_row, start_col, orientation):
     """
     Dibuja una vista previa del barco en la posición indicada.
@@ -103,49 +101,10 @@ def draw_ship_preview(screen, board, size, start_row, start_col, orientation):
             pygame.draw.rect(screen, color, (x, y, board.cell_size, board.cell_size), 0)
             pygame.draw.rect(screen, config.colors["selected_border"], (x, y, board.cell_size, board.cell_size), 2)
 
-
-def draw_game_state(screen, player, bot, player_board, bot_board, current_turn, current_round):
-    """
-    Dibuja el estado actual del juego con la información de los jugadores y tableros.
-    """
-    font_title = pygame.font.Font(config.font_bold, 54)
-    font_info = pygame.font.Font(config.font_regular, 32)
-
-    # Título del estado del juego
-    title = {
-        "placing_player_ships": "Colocando barcos del jugador",
-        "placing_bot_ships": "Colocando barcos del bot",
-        "player_turn": "Turno del jugador",
-        "bot_turn": "Turno del bot",
-        "game_over": "Juego terminado",
-        "player_turn_attack": "Jugador atacando",
-    }[current_turn]
-    title_text = font_title.render(title, True, config.colors["text"])
-    title_rect = title_text.get_rect(center=(config.WINDOW_WIDTH // 2, 40))
-    screen.blit(title_text, title_rect)
-
-    # Paneles de información
-    draw_panel(screen, 20, 80, 200, 140, {"Jugador": player.name, "Vida": player.life, "Estamina": player.stamina}, font_info)
-    draw_panel(screen, config.WINDOW_WIDTH - 220, 80, 200, 140, {"Bot": bot.name, "Vida": bot.life, "Estamina": bot.stamina}, font_info)
-
-    # Ronda actual
-    round_text = font_info.render(f"Ronda: {current_round}", True, config.colors["text"])
-    round_rect = round_text.get_rect(center=(config.WINDOW_WIDTH // 2, 130))
-    screen.blit(round_text, round_rect)
-
-    # Tableros
-    player_board.start_x = 50
-    player_board.start_y = config.WINDOW_HEIGHT // 2 - player_board.pixel_size // 2 + 100
-    player_board.draw(screen)
-
-    bot_board.start_x = config.WINDOW_WIDTH - bot_board.pixel_size - 50
-    bot_board.start_y = config.WINDOW_HEIGHT // 2 - bot_board.pixel_size // 2 + 100
-    draw_empty_board(screen, bot_board)
-
-
-def draw_central_area(screen, current_turn, player=None, bot_board=None, selected_row=None, selected_col=None, message=None):
+def draw_central_area(screen, current_turn, player=None, bot=None, bot_board=None, selected_row=None, selected_col=None, message=None):
     """
     Maneja la lógica del área central del turno, renderizando los botones y el mensaje.
+    Ahora, dependiendo de la acción, llama a las funciones correspondientes en attacks_logic.
     """
     button_area_width = 300
     button_area_height = 150
@@ -188,7 +147,10 @@ def draw_central_area(screen, current_turn, player=None, bot_board=None, selecte
             screen.blit(button_text, button_text_rect)
 
             for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and is_hovered:
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and is_hovered:
                     player.turn_skipped = False  # Resetear el estado del jugador
                     return "bot_turn"  # Cambiar el estado al turno del bot
         else:
@@ -197,15 +159,8 @@ def draw_central_area(screen, current_turn, player=None, bot_board=None, selecte
             ui.update_display()
 
             if action:
-                # Seleccionar la celda objetivo (si es necesario)
-                if action in ["normal_attack", "line_attack", "square_attack"]:
-                    selected_row, selected_col = select_target_cell(screen, bot_board)
-                # Ejecutar la acción
-                result = attacks_logic.handle_action(action, player, bot_board, selected_row, selected_col)
-                if isinstance(result, str):
-                    print(result)  # Mensaje de resultado (por ejemplo, "Estamina insuficiente").
-                elif result == "bot_turn":
-                    current_turn = "bot_turn"
+                # Ejecutar la acción utilizando las nuevas funciones de attacks_logic
+                current_turn = attacks_logic.handle_attack_action(screen, player, bot, bot_board, action)
 
     if message:
         font = pygame.font.Font(config.font_regular, 24)
@@ -215,58 +170,11 @@ def draw_central_area(screen, current_turn, player=None, bot_board=None, selecte
 
     return current_turn  # Mantener el estado actual si no hay cambios
 
-
 def select_target_cell(screen, opponent_board):
+    
     """
     Permite al jugador seleccionar una celda objetivo en el tablero del oponente.
     Devuelve las coordenadas seleccionadas (fila, columna).
     """
-    selected_row, selected_col = 0, 0
-    clock = pygame.time.Clock()
-
-    while True:
-        screen.fill(config.colors["background"])
-        opponent_board.draw(screen, selected_row, selected_col)
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-
-            # Navegación con teclado
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    selected_row = max(0, selected_row - 1)
-                elif event.key == pygame.K_DOWN:
-                    selected_row = min(opponent_board.board_size - 1, selected_row + 1)
-                elif event.key == pygame.K_LEFT:
-                    selected_col = max(0, selected_col - 1)
-                elif event.key == pygame.K_RIGHT:
-                    selected_col = min(opponent_board.board_size - 1, selected_col + 1)
-                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):  # Confirmar selección
-                    return selected_row, selected_col
-
-            # Selección con mouse
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if is_mouse_over_board(mouse_x, mouse_y, opponent_board):
-                    selected_row, selected_col = handle_mouse_selection(
-                        event, opponent_board.start_x, opponent_board.start_y, opponent_board.cell_size, opponent_board.board_size
-                    )
-                    return selected_row, selected_col
-
-        clock.tick(60)
-
-
-def is_mouse_over_board(mouse_x, mouse_y, board):
-    """
-    Verifica si el mouse está sobre el área del tablero.
-    """
-    board_width = board.cell_size * board.board_size
-    board_height = board.cell_size * board.board_size
-    return (
-        board.start_x <= mouse_x <= board.start_x + board_width and
-        board.start_y <= mouse_y <= board.start_y + board_height
-    )
+    return attacks_logic.select_attack_cell(screen, opponent_board)
 
