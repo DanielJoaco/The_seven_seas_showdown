@@ -1,19 +1,15 @@
 class Ship:
-    def __init__(self, name, size, quantity):
+    def __init__(self, name, size):
         """
-        Inicializa un barco con un nombre, tamaño (en celdas) y cantidad.
+        Inicializa un barco con un nombre y tamaño.
         """
-        self.name = name           # Nombre del tipo de barco
-        self.size = size           # Tamaño del barco (en número de celdas)
-        self.quantity = quantity   # Cantidad de barcos de este tipo
-        self.positions = []        # Lista de posiciones de este barco en el tablero (vacía al inicio)
+        self.name = name
+        self.size = size
+        self.positions = []
 
     def place(self, start_pos, orientation, board_size):
         """
         Coloca el barco en el tablero dado un punto de inicio y una orientación.
-        - start_pos: Tupla (fila, columna) para el inicio del barco.
-        - orientation: 'H' para horizontal, 'V' para vertical.
-        - board_size: Tamaño del tablero (para validar límites).
         """
         self.positions = []
         row, col = start_pos
@@ -25,27 +21,22 @@ class Ship:
             else:
                 raise ValueError("Posición fuera de los límites del tablero.")
 
-# Crear una flota de barcos
-def create_fleet(ship_definitions=None):
+def create_fleet():
     """
-    Crea una flota basada en definiciones proporcionadas o utiliza valores predeterminados.
-    - ship_definitions: Diccionario opcional con {nombre: (tamaño, cantidad)}.
+    Crea una flota basada en definiciones predeterminadas.
     """
-    if ship_definitions is None:
-        ship_definitions = {
-            "Portaaviones": (6, 1),  # Tamaño 6, 1 barco
-            "Acorazado": (4, 1),    # Tamaño 4, 1 barco
-            "Crucero": (3, 2),      # Tamaño 3, 2 barcos
-            "Submarino": (2, 3),    # Tamaño 2, 3 barcos
-            "Destructor": (1, 4),   # Tamaño 1, 4 barcos
-        }
-    # Crear la lista de barcos desglosada por cantidad
+    ship_definitions = {
+        "Portaaviones": (6, 1),
+        "Acorazado": (4, 1),
+        "Crucero": (3, 2),
+        "Submarino": (2, 3),
+        "Destructor": (1, 4),
+    }
     fleet = []
     for name, (size, quantity) in ship_definitions.items():
         for _ in range(quantity):
-            fleet.append(Ship(name, size, 1))  # Cada barco individual tiene cantidad 1
+            fleet.append(Ship(name, size))
     return fleet
-
 
 # Crear una flota global predeterminada
 fleet = create_fleet()

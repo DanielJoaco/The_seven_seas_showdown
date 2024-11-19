@@ -9,7 +9,6 @@ def dice_turn(screen, message, button_area_rect):
     """
     font = pygame.font.Font(config.font_regular, 24)
 
-    # Configuración del botón
     button_config = {
         "x": button_area_rect.x + 50,
         "y": button_area_rect.y + 100,
@@ -25,8 +24,12 @@ def dice_turn(screen, message, button_area_rect):
     while dice_result is None:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         is_hovered = is_mouse_over_button(
-            mouse_x, mouse_y, button_config["x"], button_config["y"],
-            button_config["width"], button_config["height"]
+            mouse_x,
+            mouse_y,
+            button_config["x"],
+            button_config["y"],
+            button_config["width"],
+            button_config["height"],
         )
 
         for event in pygame.event.get():
@@ -34,14 +37,23 @@ def dice_turn(screen, message, button_area_rect):
                 pygame.quit()
                 exit()
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and is_hovered:
+            if (
+                event.type == pygame.MOUSEBUTTONDOWN
+                and event.button == 1
+                and is_hovered
+            ):
                 rolling = True
                 start_time = pygame.time.get_ticks()
 
-        # Dibujar la sección central y manejar la lógica del dado
         dice_result = _render_dice_turn(
-            screen, font, button_area_rect, rolling, start_time, message,
-            button_config, is_hovered
+            screen,
+            font,
+            button_area_rect,
+            rolling,
+            start_time,
+            message,
+            button_config,
+            is_hovered,
         )
 
         pygame.display.flip()
@@ -49,44 +61,50 @@ def dice_turn(screen, message, button_area_rect):
 
     return dice_result
 
-
-def _render_dice_turn(screen, font, button_area_rect, rolling, start_time, message, button_config, is_hovered):
+def _render_dice_turn(
+    screen, font, button_area_rect, rolling, start_time, message, button_config, is_hovered
+):
     """
     Renderiza la sección del dado, maneja la animación y el mensaje.
     """
-    pygame.draw.rect(screen, config.colors["background"], button_area_rect, border_radius=10)
+    pygame.draw.rect(
+        screen, config.colors["background"], button_area_rect, border_radius=10
+    )
 
     if rolling:
         elapsed_time = pygame.time.get_ticks() - start_time
-        if elapsed_time < 3000:  # Lanzamiento de 3 segundos
+        if elapsed_time < 3000:
             current_roll = random.randint(1, 100)
             message = str(current_roll)
         else:
-            return random.randint(1, 100)  # Resultado final
+            return random.randint(1, 100)
 
-    # Dibujar el mensaje o resultado temporal
     message_text = font.render(message, True, config.colors["text"])
-    message_text_rect = message_text.get_rect(center=(button_area_rect.centerx, button_area_rect.centery - 40))
+    message_text_rect = message_text.get_rect(
+        center=(button_area_rect.centerx, button_area_rect.centery - 40)
+    )
     screen.blit(message_text, message_text_rect)
 
-    # Crear el botón
     draw_button(
-        screen, button_config["x"], button_config["y"],
-        button_config["width"], button_config["height"],
-        "Tirar Dado", font, is_hovered=is_hovered
+        screen,
+        button_config["x"],
+        button_config["y"],
+        button_config["width"],
+        button_config["height"],
+        "Tirar Dado",
+        font,
+        is_hovered=is_hovered,
     )
     return None
-
 
 def process_dice_roll(dice_result, player):
     """
     Maneja el resultado del dado, aplica efectos al jugador y devuelve un mensaje para la interfaz.
     """
     event = _get_dice_event(dice_result)
-    event["action"](player)  # Ejecutar la acción
+    event["action"](player)
     print(f"Resultado del dado: {dice_result} -> {event['message']}")
     return event["message"]
-
 
 def _get_dice_event(dice_result):
     """

@@ -20,9 +20,13 @@ class Config:
             "border": (0, 0, 0),
             "selected_border": (255, 255, 255),
             "text": (229, 88, 18),
-            "water": (105, 105, 105),  # Celda atacada sin barco
-            "hit": (255, 0, 0),  # Celda atacada con barco
-            "disabled_button": (128, 128, 128),  # Botón desactivado
+            "water": (105, 105, 105),
+            "hit": (255, 0, 0),
+            "disabled_button": (128, 128, 128),
+            "preview_attack": (255, 255, 0),
+            "radar": (0, 0, 139),  # Azul oscuro para el radar
+            "shielded": (0, 0, 139),  # Usamos el mismo color para celdas protegidas por escudo
+            "radar_detected": (0, 0, 139),  # Color para celdas detectadas por el radar
         }
 
         # Configuración del tablero
