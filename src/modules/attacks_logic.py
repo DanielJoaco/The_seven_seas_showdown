@@ -4,13 +4,11 @@ import pygame
 from modules.config import config
 from modules.utils import (
     is_within_bounds,
-    handle_mouse_selection,
-    draw_panel,
-    draw_empty_board,
+    display_message,
+    draw_preview,
+    handle_navigation_and_selection
 )
-from modules.ui import ui  # Importar la instancia ui
-from modules.buttons import is_mouse_over_button, draw_button
-from modules.utils import display_message  # Asegúrate de tener esta función en game_logic.py
+from modules.ui import ui
 
 
 def handle_attack_action(screen, player, bot, bot_board, attack_type):
@@ -45,8 +43,9 @@ def handle_normal_attack(screen, player, bot, bot_board):
     :param bot_board: Tablero del bot.
     :return: Nuevo estado del turno.
     """
-    selected_row, selected_col = select_attack_cell(screen, bot_board, player, bot, attack_type="normal")
-    if selected_row is None or selected_col is None:
+    selected_row, selected_col, orientation, confirm = select_attack_cell(screen, bot_board, player, bot, attack_type="normal_attack")
+    
+    if not confirm:
         return "player_turn"
 
     # Verificar si la celda ya ha sido atacada
@@ -55,7 +54,7 @@ def handle_normal_attack(screen, player, bot, bot_board):
         return "player_turn"
 
     # Realizar el ataque
-    result = bot_board.receive_attack(selected_row, selected_col)
+    result = bot.receive_attack(selected_row, selected_col)
     update_attack_board(player, selected_row, selected_col, result)
 
     # Actualizar el tablero de ataque visualmente
@@ -86,8 +85,9 @@ def handle_line_attack(screen, player, bot, bot_board):
     :param bot_board: Tablero del bot.
     :return: Nuevo estado del turno.
     """
-    selected_row, selected_col, orientation = select_attack_line(screen, bot_board, player, bot)
-    if selected_row is None or selected_col is None or orientation is None:
+    selected_row, selected_col, orientation, confirm = select_attack_line(screen, bot_board, player, bot)
+
+    if not confirm:
         return "player_turn"
 
     # Determinar las celdas a atacar en línea
@@ -103,7 +103,7 @@ def handle_line_attack(screen, player, bot, bot_board):
     any_hit = False
     for row, col in cells_to_attack:
         if player.attack_board[row][col]["state"] == 0:
-            result = bot_board.receive_attack(row, col)
+            result = bot.receive_attack(row, col)
             update_attack_board(player, row, col, result)
             if result == "hit":
                 any_hit = True
@@ -133,8 +133,9 @@ def handle_square_attack(screen, player, bot, bot_board):
     :param bot_board: Tablero del bot.
     :return: Nuevo estado del turno.
     """
-    selected_row, selected_col = select_attack_cell(screen, bot_board, player, bot, attack_type="square")
-    if selected_row is None or selected_col is None:
+    selected_row, selected_col, orientation, confirm = select_attack_cell(screen, bot_board, player, bot, attack_type="square_attack")
+
+    if not confirm:
         return "player_turn"
 
     # Determinar las celdas en el área 2x2
@@ -155,7 +156,7 @@ def handle_square_attack(screen, player, bot, bot_board):
     any_hit = False
     for row, col in cells_to_attack:
         if player.attack_board[row][col]["state"] == 0:
-            result = bot_board.receive_attack(row, col)
+            result = bot.receive_attack(row, col)
             update_attack_board(player, row, col, result)
             if result == "hit":
                 any_hit = True
@@ -175,7 +176,7 @@ def handle_square_attack(screen, player, bot, bot_board):
         return "bot_turn"
 
 
-def select_attack_cell(screen, bot_board, player, bot, attack_type="normal"):
+def select_attack_cell(screen, bot_board, player, bot, attack_type="normal_attack"):
     """
     Permite al jugador seleccionar una celda objetivo en el tablero del bot.
     Similar a la colocación de barcos.
@@ -184,8 +185,8 @@ def select_attack_cell(screen, bot_board, player, bot, attack_type="normal"):
     :param bot_board: Tablero del bot.
     :param player: Jugador que realiza el ataque.
     :param bot: Bot que recibe el ataque.
-    :param attack_type: Tipo de ataque ("normal", "square").
-    :return: (fila, columna) seleccionadas o (None, None) si se cancela.
+    :param attack_type: Tipo de ataque ("normal_attack", "square_attack").
+    :return: (fila, columna, orientación, confirmación) seleccionadas o (None, None, None, False) si se cancela.
     """
     selected_row, selected_col = 0, 0
     orientation = "H"  # Predeterminado (solo relevante para ciertos ataques)
@@ -194,7 +195,10 @@ def select_attack_cell(screen, bot_board, player, bot, attack_type="normal"):
     while True:
         screen.fill(config.colors["background"])
         ui.draw_game_state(screen, player, bot, None, bot_board, "attack_selection", 0)
-        draw_attack_preview(screen, bot_board, selected_row, selected_col, orientation, attack_type)
+        if attack_type == "normal_attack":
+            draw_preview(screen, bot_board, selected_row, selected_col, 1, orientation, preview_type="attack_normal")
+        elif attack_type == "square_attack":
+            draw_preview(screen, bot_board, selected_row, selected_col, 2, orientation, preview_type="attack_square")
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -202,40 +206,20 @@ def select_attack_cell(screen, bot_board, player, bot, attack_type="normal"):
                 pygame.quit()
                 exit()
 
-            # Navegación con teclado
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    selected_row = max(0, selected_row - 1)
-                elif event.key == pygame.K_DOWN:
-                    selected_row = min(bot_board.board_size - 1, selected_row + 1)
-                elif event.key == pygame.K_LEFT:
-                    selected_col = max(0, selected_col - 1)
-                elif event.key == pygame.K_RIGHT:
-                    selected_col = min(bot_board.board_size - 1, selected_col + 1)
-                elif event.key == pygame.K_r and attack_type != "line_attack":
-                    orientation = "V" if orientation == "H" else "H"
-                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    # Validar la posición antes de retornar
-                    if attack_type == "square":
-                        if not is_within_bounds(selected_row + 1, selected_col + 1, bot_board.board_size):
-                            display_message(screen, "Ataque fuera de los límites.")
-                            continue
-                    return selected_row, selected_col
+            # Manejar navegación y selección usando la función utilitaria
+            selected_row, selected_col, orientation, confirm = handle_navigation_and_selection(
+                event,
+                selected_row,
+                selected_col,
+                bot_board.board_size,
+                orientation,
+                attack_type,
+                bot_board,
+                screen
+            )
 
-            # Selección con mouse
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if is_mouse_over_board(mouse_x, mouse_y, bot_board):
-                    row, col = handle_mouse_selection(
-                        event, bot_board.start_x, bot_board.start_y, bot_board.cell_size, bot_board.board_size
-                    )
-                    if row is not None and col is not None:
-                        if attack_type == "square":
-                            # Verificar límites para ataques cuadrados
-                            if not is_within_bounds(row + 1, col + 1, bot_board.board_size):
-                                display_message(screen, "Ataque cuadrado fuera de los límites.")
-                                continue
-                        return row, col
+            if confirm:
+                return selected_row, selected_col, orientation, True
 
         clock.tick(60)
 
@@ -248,7 +232,7 @@ def select_attack_line(screen, bot_board, player, bot):
     :param bot_board: Tablero del bot.
     :param player: Jugador que realiza el ataque.
     :param bot: Bot que recibe el ataque.
-    :return: (fila, columna, orientación) seleccionadas o (None, None, None) si se cancela.
+    :return: (fila, columna, orientación, confirmación) seleccionadas o (None, None, None, False) si se cancela.
     """
     selected_row, selected_col = 0, 0
     orientation = "H"  # Predeterminado
@@ -257,7 +241,10 @@ def select_attack_line(screen, bot_board, player, bot):
     while True:
         screen.fill(config.colors["background"])
         ui.draw_game_state(screen, player, bot, None, bot_board, "attack_selection", 0)
-        draw_line_attack_preview(screen, bot_board, selected_row, selected_col, orientation)
+        draw_preview(screen, bot_board, selected_row, selected_col, 
+                    1, 
+                    orientation, 
+                    preview_type="attack_line")
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -265,39 +252,20 @@ def select_attack_line(screen, bot_board, player, bot):
                 pygame.quit()
                 exit()
 
-            # Navegación con teclado
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    selected_row = max(0, selected_row - 1)
-                elif event.key == pygame.K_DOWN:
-                    selected_row = min(bot_board.board_size - 1, selected_row + 1)
-                elif event.key == pygame.K_LEFT:
-                    selected_col = max(0, selected_col - 1)
-                elif event.key == pygame.K_RIGHT:
-                    selected_col = min(bot_board.board_size - 1, selected_col + 1)
-                elif event.key == pygame.K_r:
-                    orientation = "V" if orientation == "H" else "H"
-                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    return selected_row, selected_col, orientation
+            # Manejar navegación y selección usando la función utilitaria
+            selected_row, selected_col, orientation, confirm = handle_navigation_and_selection(
+                event,
+                selected_row,
+                selected_col,
+                bot_board.board_size,
+                orientation,
+                "line_attack",
+                bot_board,
+                screen
+            )
 
-            # Selección con mouse
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if is_mouse_over_board(mouse_x, mouse_y, bot_board):
-                    row, col = handle_mouse_selection(
-                        event, bot_board.start_x, bot_board.start_y, bot_board.cell_size, bot_board.board_size
-                    )
-                    if row is not None and col is not None:
-                        # Verificar límites para ataques lineales
-                        if orientation == "H":
-                            if not is_within_bounds(row, bot_board.board_size - 1, bot_board.board_size):
-                                display_message(screen, "Ataque lineal horizontal fuera de los límites.")
-                                continue
-                        else:
-                            if not is_within_bounds(bot_board.board_size - 1, col, bot_board.board_size):
-                                display_message(screen, "Ataque lineal vertical fuera de los límites.")
-                                continue
-                        return row, col, orientation
+            if confirm:
+                return selected_row, selected_col, orientation, True
 
         clock.tick(60)
 
@@ -336,106 +304,3 @@ def update_bot_attack_board_visual(screen, player, bot_board):
                 y = bot_board.start_y + row * bot_board.cell_size
                 pygame.draw.rect(screen, color, (x, y, bot_board.cell_size, bot_board.cell_size))
                 pygame.draw.rect(screen, config.colors["border"], (x, y, bot_board.cell_size, bot_board.cell_size), width=config.BORDER_WIDTH)
-
-
-def draw_attack_preview(screen, bot_board, row, col, orientation, attack_type="normal"):
-    """
-    Dibuja una vista previa del ataque en la posición seleccionada.
-
-    :param screen: Superficie de Pygame para dibujar.
-    :param bot_board: Tablero del bot.
-    :param row: Fila seleccionada.
-    :param col: Columna seleccionada.
-    :param orientation: Orientación del ataque ("H" o "V").
-    :param attack_type: Tipo de ataque ("normal", "square", "line").
-    """
-    color = config.colors["selected_cell"]
-
-    if attack_type == "normal":
-        # Solo una celda
-        if is_within_bounds(row, col, bot_board.board_size):
-            x = bot_board.start_x + col * bot_board.cell_size
-            y = bot_board.start_y + row * bot_board.cell_size
-            pygame.draw.rect(screen, color, (x, y, bot_board.cell_size, bot_board.cell_size), 0)
-            pygame.draw.rect(screen, config.colors["selected_border"], (x, y, bot_board.cell_size, bot_board.cell_size), 2)
-    elif attack_type == "square":
-        # Área 2x2
-        for i in range(2):
-            for j in range(2):
-                r = row + i
-                c = col + j
-                if is_within_bounds(r, c, bot_board.board_size):
-                    x = bot_board.start_x + c * bot_board.cell_size
-                    y = bot_board.start_y + r * bot_board.cell_size
-                    pygame.draw.rect(screen, color, (x, y, bot_board.cell_size, bot_board.cell_size), 0)
-                    pygame.draw.rect(screen, config.colors["selected_border"], (x, y, bot_board.cell_size, bot_board.cell_size), 2)
-    elif attack_type == "line":
-        # Línea horizontal o vertical
-        if orientation == "H":
-            for c in range(bot_board.board_size):
-                x = bot_board.start_x + c * bot_board.cell_size
-                y = bot_board.start_y + row * bot_board.cell_size
-                pygame.draw.rect(screen, color, (x, y, bot_board.cell_size, bot_board.cell_size), 0)
-                pygame.draw.rect(screen, config.colors["selected_border"], (x, y, bot_board.cell_size, bot_board.cell_size), 2)
-        else:
-            for r in range(bot_board.board_size):
-                x = bot_board.start_x + col * bot_board.cell_size
-                y = bot_board.start_y + r * bot_board.cell_size
-                pygame.draw.rect(screen, color, (x, y, bot_board.cell_size, bot_board.cell_size), 0)
-                pygame.draw.rect(screen, config.colors["selected_border"], (x, y, bot_board.cell_size, bot_board.cell_size), 2)
-
-
-def draw_line_attack_preview(screen, bot_board, row, col, orientation):
-    """
-    Dibuja una vista previa del ataque lineal.
-
-    :param screen: Superficie de Pygame para dibujar.
-    :param bot_board: Tablero del bot.
-    :param row: Fila seleccionada.
-    :param col: Columna seleccionada.
-    :param orientation: Orientación del ataque ("H" o "V").
-    """
-    draw_attack_preview(screen, bot_board, row, col, orientation, attack_type="line")
-
-
-def display_message(screen, message):
-    """
-    Muestra un mensaje en el área central.
-
-    :param screen: Superficie de Pygame para dibujar.
-    :param message: Texto del mensaje a mostrar.
-    """
-    button_area_width = 300
-    button_area_height = 150
-    button_area_x = config.WINDOW_WIDTH // 2 - button_area_width // 2
-    button_area_y = config.WINDOW_HEIGHT // 2 - button_area_height // 2
-    button_area_rect = pygame.Rect(button_area_x, button_area_y, button_area_width, button_area_height)
-
-    # Dibujar el fondo del mensaje
-    pygame.draw.rect(screen, config.colors["background"], button_area_rect, border_radius=10)
-    pygame.draw.rect(screen, config.colors["border"], button_area_rect, width=4, border_radius=10)
-
-    # Renderizar el texto del mensaje
-    font = pygame.font.Font(config.font_regular, 24)
-    message_text = font.render(message, True, config.colors["text"])
-    message_text_rect = message_text.get_rect(center=(button_area_rect.centerx, button_area_rect.centery))
-    screen.blit(message_text, message_text_rect)
-    ui.update_display()
-    pygame.time.delay(1500)  # Mostrar el mensaje durante 1.5 segundos
-
-
-def is_mouse_over_board(mouse_x, mouse_y, board):
-    """
-    Verifica si el mouse está sobre el área del tablero.
-
-    :param mouse_x: Coordenada X del mouse.
-    :param mouse_y: Coordenada Y del mouse.
-    :param board: Objeto del tablero.
-    :return: True si el mouse está sobre el tablero, False de lo contrario.
-    """
-    board_width = board.cell_size * board.board_size
-    board_height = board.cell_size * board.board_size
-    return (
-        board.start_x <= mouse_x <= board.start_x + board_width and
-        board.start_y <= mouse_y <= board.start_y + board_height
-    )

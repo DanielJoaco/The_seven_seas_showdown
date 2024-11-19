@@ -4,15 +4,19 @@ from modules.config import config
 from modules.utils import (
     handle_navigation_and_selection,
     can_place_ship,
+    place_ship_on_board,
     draw_panel,
     draw_empty_board,
-    place_ship_on_board,
+    display_message,
+    draw_preview,
+    toggle_orientation,
     handle_mouse_selection
 )
 from modules.dice import dice_turn, process_dice_roll
 from modules.buttons import draw_action_buttons, is_mouse_over_button
 from modules.ui import ui
 import modules.attacks_logic as attacks_logic
+
 
 def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
     """
@@ -42,9 +46,8 @@ def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
             message=f"{player.name}, coloca tu {ship.name}",
         )
 
-
-        # Vista previa del barco
-        draw_ship_preview(screen, player_board, ship.size, selected_row, selected_col, orientation)
+        # Vista previa del barco utilizando la función genérica draw_preview
+        draw_preview(screen, player_board, selected_row, selected_col, ship.size, orientation, preview_type="ship")
 
         # Actualiza la pantalla
         pygame.display.flip()
@@ -54,52 +57,57 @@ def place_ships(screen, player_board, player_fleet, player, bot, bot_board):
                 pygame.quit()
                 exit()
 
-            # Manejar navegación y selección
-            selected_row, selected_col = handle_navigation_and_selection(
+            # Manejar navegación y selección usando la función utilitaria
+            selected_row, selected_col, orientation, confirm = handle_navigation_and_selection(
                 event,
                 selected_row,
                 selected_col,
                 player_board.board_size,
-                player_board.cell_size,
-                player_board.start_x,
-                player_board.start_y,
+                orientation,
+                attack_type=None,  # No es un ataque, es colocación de barcos
+                board=player_board,
+                screen=screen
             )
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Clic izquierdo: colocar barco
-                    if can_place_ship(player_board, ship.size, selected_row, selected_col, orientation):
-                        place_ship_on_board(player_board, ship, selected_row, selected_col, orientation)
+            if confirm:
+                if can_place_ship(player_board, ship.size, selected_row, selected_col, orientation):
+                    place_ship_on_board(player_board, ship, selected_row, selected_col, orientation)
+                    current_ship_index += 1
+                    break
+                else:
+                    display_message(screen, "No se puede colocar el barco aquí.")
+
+            # Manejar selección con mouse
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                row, col = handle_mouse_selection(
+                    event,
+                    player_board.start_x,
+                    player_board.start_y,
+                    player_board.cell_size,
+                    player_board.board_size
+                )
+                if row is not None and col is not None:
+                    if can_place_ship(player_board, ship.size, row, col, orientation):
+                        place_ship_on_board(player_board, ship, row, col, orientation)
                         current_ship_index += 1
                         break
-                elif event.button == 3:  # Clic derecho: cambiar orientación
-                    orientation = "H" if orientation == "V" else "V"
+                    else:
+                        display_message(screen, "No se puede colocar el barco aquí.")
 
+            # Manejar cambio de orientación con teclado
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_v:  # Rotación con teclado
-                    orientation = "H" if orientation == "V" else "V"
+                    orientation = toggle_orientation(orientation)
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):  # Confirmar colocación con teclado
                     if can_place_ship(player_board, ship.size, selected_row, selected_col, orientation):
                         place_ship_on_board(player_board, ship, selected_row, selected_col, orientation)
                         current_ship_index += 1
                         break
+                    else:
+                        display_message(screen, "No se puede colocar el barco aquí.")
 
     return True
 
-def draw_ship_preview(screen, board, size, start_row, start_col, orientation):
-    """
-    Dibuja una vista previa del barco en la posición indicada.
-    """
-    valid = can_place_ship(board, size, start_row, start_col, orientation)
-    color = config.colors["selected_cell"] if valid else (255, 0, 0)
-
-    for i in range(size):
-        row = start_row + (i if orientation == "V" else 0)
-        col = start_col + (i if orientation == "H" else 0)
-        if 0 <= row < board.board_size and 0 <= col < board.board_size:
-            x = board.start_x + col * board.cell_size
-            y = board.start_y + row * board.cell_size
-            pygame.draw.rect(screen, color, (x, y, board.cell_size, board.cell_size), 0)
-            pygame.draw.rect(screen, config.colors["selected_border"], (x, y, board.cell_size, board.cell_size), 2)
 
 def draw_central_area(screen, current_turn, player=None, bot=None, bot_board=None, selected_row=None, selected_col=None, message=None):
     """
@@ -165,16 +173,7 @@ def draw_central_area(screen, current_turn, player=None, bot=None, bot_board=Non
     if message:
         font = pygame.font.Font(config.font_regular, 24)
         message_text = font.render(message, True, config.colors["text"])
-        message_text_rect = message_text.get_rect(center=button_area_rect.center)
+        message_text_rect = message_text.get_rect(center=(button_area_rect.centerx, button_area_rect.centery))
         screen.blit(message_text, message_text_rect)
 
     return current_turn  # Mantener el estado actual si no hay cambios
-
-def select_target_cell(screen, opponent_board):
-    
-    """
-    Permite al jugador seleccionar una celda objetivo en el tablero del oponente.
-    Devuelve las coordenadas seleccionadas (fila, columna).
-    """
-    return attacks_logic.select_attack_cell(screen, opponent_board)
-

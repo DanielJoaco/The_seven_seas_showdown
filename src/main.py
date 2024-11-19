@@ -6,6 +6,7 @@ from modules.player import Player
 from modules.buttons import draw_button, handle_button_interaction, is_mouse_over_button
 from modules.game_logic import place_ships, draw_central_area
 import time
+from modules.utils import handle_menu_navigation  # Importar función de navegación de menú
 
 
 def initialize_game():
@@ -32,6 +33,7 @@ def main_menu():
 
     selected_index = 0  # Botón seleccionado por defecto
     last_input = "keyboard"  # Para rastrear la última fuente de entrada
+    num_buttons = len(button_specs)
 
     while True:
         ui.fill_background()
@@ -51,16 +53,10 @@ def main_menu():
                 pygame.quit()
                 exit()
 
-            # Manejo de navegación con teclado
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    selected_index = max(0, selected_index - 1)
-                    last_input = "keyboard"
-                elif event.key == pygame.K_DOWN:
-                    selected_index = min(len(button_specs) - 1, selected_index + 1)
-                    last_input = "keyboard"
-                elif event.key == pygame.K_RETURN:
-                    return button_specs[selected_index][4]  # Acción seleccionada
+            # Manejo de navegación con teclado usando la función utilitaria
+            selected_index, confirm = handle_menu_navigation(event, selected_index, num_buttons)
+            if confirm:
+                return button_specs[selected_index][4]  # Acción seleccionada
 
             # Manejo de interacción con mouse
             hovered_index = handle_button_interaction(mouse_x, mouse_y, [(x, y, w, h) for x, y, w, h, _ in button_specs])
@@ -111,15 +107,12 @@ def start_game(board, player, bot_board, bot):
 
         # Flujo del ataque del jugador
         elif current_turn == "player_turn_attack":
-            selected_row, selected_col = 0, 0  # Inicializa la celda seleccionada por defecto
             current_turn = draw_central_area(
                 ui.screen,
                 current_turn,
                 player=player,
                 bot=bot,  # Pasar el objeto bot
                 bot_board=bot_board,  # Tablero del bot
-                selected_row=selected_row,
-                selected_col=selected_col,  # Coordenadas para las acciones
             )
 
         # Flujo del turno del bot
