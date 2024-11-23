@@ -5,13 +5,13 @@ from modules.board import Board
 from modules.ui import ui
 from modules.player import Player
 from modules.game_logic import place_ships, draw_central_area
-from modules.utils import handle_menu_navigation
+from modules.utils import handle_menu_navigation, display_message
 from modules.buttons import draw_button, handle_button_interaction, is_mouse_over_button
 from modules.attacks_logic import bot_attack
 
 def initialize_game():
     """Inicializa los elementos principales del juego: tableros y jugadores."""
-    board_size = 15
+    board_size = 10
     player_board = Board(board_size)
     player = Player("Jugador", player_board)
     bot_board = Board(board_size)
@@ -93,6 +93,7 @@ def start_game(player_board, player, bot_board, bot):
                     current_turn,
                     current_round,
                 )
+                display_message(ui.screen, "Calculando posiciones...")
                 ui.update_display()
                 time.sleep(3)
                 bot.place_fleet_randomly()

@@ -73,7 +73,7 @@ def handle_line_attack(screen, player, bot, bot_board, current_round):
     """
     Maneja un ataque lineal de 3 celdas.
     """
-    attack_cost = 3
+    attack_cost = 2
     if player.stamina < attack_cost:
         display_message(screen, "No tienes suficiente estamina para un ataque lineal.")
         return "player_turn"
@@ -110,7 +110,7 @@ def handle_line_attack(screen, player, bot, bot_board, current_round):
                 any_hit = True
             elif result == "shielded":
                 any_hit = True
-                
+
     # Limpiar la pantalla y dibujar el estado del juego
     screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player.board, bot_board, "player_turn_attack", current_round)
@@ -127,7 +127,7 @@ def handle_square_attack(screen, player, bot, bot_board, current_round):
     """
     Maneja un ataque cuadrado.
     """
-    attack_cost = 4
+    attack_cost = 3
     if player.stamina < attack_cost:
         display_message(screen, "No tienes suficiente estamina para un ataque cuadrado.")
         return "player_turn"
@@ -158,7 +158,7 @@ def handle_square_attack(screen, player, bot, bot_board, current_round):
                 any_hit = True
             elif result == "shielded":
                 any_hit = True
-                
+
     # Limpiar la pantalla y dibujar el estado del juego
     screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player.board, bot_board, "player_turn_attack", current_round)
@@ -172,7 +172,7 @@ def handle_square_attack(screen, player, bot, bot_board, current_round):
         return "bot_turn"
 
 def handle_radar(screen, player, bot, bot_board, current_round):
-    ability_cost = 4
+    ability_cost = 3
     if player.stamina < ability_cost:
         display_message(screen, "No tienes suficiente estamina para usar el radar.")
         return "player_turn"
@@ -361,7 +361,7 @@ def find_nearest_ship_cell(bot_board, selected_row, selected_col, player):
         for col in range(bot_board.board_size):
             cell = bot_board.grid[row][col]
             # Verificar si hay un barco no atacado en esta celda
-            if cell["ship"] is not None and cell["state"] == 1:  # Estado 1: Barco no atacado
+            if cell["ship"] is not None and cell["state"] == 0:  # Estado 0: Celda no atacada
                 # Verificar si la celda no ha sido detectada ya por el radar
                 if player.attack_board[row][col]["state"] != 5:
                     # Calcular la distancia Manhattan
@@ -370,7 +370,6 @@ def find_nearest_ship_cell(bot_board, selected_row, selected_col, player):
                         min_distance = distance
                         nearest_cell = (row, col)
     return nearest_cell
-
 
 def bot_attack(screen, bot, player, player_board, current_round):
     """
@@ -409,6 +408,7 @@ def bot_attack(screen, bot, player, player_board, current_round):
             "use_radar": "El bot utiliza el radar.",
             "use_shield": "El bot activa un escudo.",
         }
+
         display_message(screen, action_messages[attack_type], delay=2000)
 
         # Ejecutar la acción
@@ -458,7 +458,8 @@ def bot_handle_normal_attack(screen, bot, player, player_board, current_round):
 
     result = player.receive_attack(selected_row, selected_col)
     update_bot_attack_board(bot, selected_row, selected_col, result)
-
+    # Limpiar la pantalla antes de dibujar
+    screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
 
@@ -510,7 +511,8 @@ def bot_handle_line_attack(screen, bot, player, player_board, current_round):
                 any_hit = True
             elif result == "shielded":
                 any_hit = False  # Escudo bloqueó el ataque
-
+    # Limpiar la pantalla antes de dibujar
+    screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
 
@@ -548,7 +550,8 @@ def bot_handle_square_attack(screen, bot, player, player_board, current_round):
                 any_hit = True
             elif result == "shielded":
                 any_hit = False  # Escudo bloqueó el ataque
-
+    # Limpiar la pantalla antes de dibujar
+    screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
 

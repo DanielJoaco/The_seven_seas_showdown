@@ -135,7 +135,6 @@ def display_message(screen, message, delay=1000):
     ui.update_display()
     pygame.time.delay(delay)
     
-    
 def draw_preview(screen, board, selected_row, selected_col, orientation, preview_type="ship", attack_board=None, size=None):
     """
     Dibuja una vista previa de la acción seleccionada.
@@ -159,7 +158,7 @@ def draw_preview(screen, board, selected_row, selected_col, orientation, preview
             )
             for i in range(size)
         ]
-    elif preview_type == "normal_attack":
+    elif preview_type in ["normal_attack", "radar"]:
         # Solo la celda seleccionada
         positions = [(selected_row, selected_col)]
     elif preview_type == "square_attack":
