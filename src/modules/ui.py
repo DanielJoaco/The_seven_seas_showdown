@@ -1,6 +1,5 @@
 import pygame
 from modules.config import config
-from modules.utils import draw_panel, draw_attack_board
 
 class UI:
     def __init__(self):
@@ -21,7 +20,7 @@ class UI:
     def update_display(self):
         """Actualiza la pantalla y controla el framerate."""
         pygame.display.flip()
-        self.clock.tick(60)
+        self.clock.tick(30)  # Puedes ajustar el framerate según tus necesidades
 
     def draw_game_state(self, screen, player, bot, player_board, bot_board, current_turn, current_round):
         """
@@ -45,8 +44,8 @@ class UI:
         screen.blit(title_text, title_rect)
 
         # Paneles de información
-        draw_panel(screen, 20, 80, 300, 140, {"Jugador": player.name, "Vida": player.life, "Estamina": player.stamina}, font_info)
-        draw_panel(screen, config.WINDOW_WIDTH - 320, 80, 300, 140, {"Bot": bot.name, "Vida": bot.life, "Estamina": bot.stamina}, font_info)
+        self.draw_panel(screen, 20, 80, 300, 140, {"Jugador": player.name, "Vida": player.life, "Estamina": player.stamina}, font_info)
+        self.draw_panel(screen, config.WINDOW_WIDTH - 320, 80, 300, 140, {"Bot": bot.name, "Vida": bot.life, "Estamina": bot.stamina}, font_info)
 
         # Dibujar el tablero del jugador
         if player_board:
@@ -58,6 +57,74 @@ class UI:
         if bot_board:
             bot_board.start_x = config.WINDOW_WIDTH - bot_board.pixel_size - 50  # Posición a la derecha
             bot_board.start_y = 260
-            draw_attack_board(screen, bot_board, player.attack_board)
+            self.draw_attack_board(screen, bot_board, player.attack_board)
+
+    def draw_panel(self, screen, x, y, width, height, info, font):
+        """
+        Dibuja un panel de información en la pantalla.
+        """
+        pygame.draw.rect(
+            screen, config.colors["background"], (x, y, width, height), border_radius=10
+        )
+        pygame.draw.rect(
+            screen, config.colors["border"], (x, y, width, height), 2, border_radius=10
+        )
+        padding = 10
+        line_height = 30
+        for i, (key, value) in enumerate(info.items()):
+            text = font.render(f"{key}: {value}", True, config.colors["text"])
+            screen.blit(text, (x + padding, y + padding + i * line_height))
+        
+    def draw_attack_board(self, screen, board, attack_board):
+        """
+        Dibuja el tablero de ataque del jugador (su vista del tablero del bot).
+        """
+        # Dibujar números de columnas (1 a N) en la parte superior
+        font = pygame.font.Font(config.font_regular, 12)
+        for col in range(board.board_size):
+            number_text = font.render(str(col + 1), True, config.colors["text"])
+            text_rect = number_text.get_rect(
+                center=(
+                    board.start_x + col * board.cell_size + board.cell_size // 2,
+                    board.start_y - board.cell_size // 2,
+                )
+            )
+            screen.blit(number_text, text_rect)
+
+        # Dibujar letras de filas (A, B, C, ...) en el lado derecho
+        for row in range(board.board_size):
+            letter_text = font.render(chr(65 + row), True, config.colors["text"])
+            text_rect = letter_text.get_rect(
+                center=(
+                    board.start_x + board.board_size * board.cell_size + board.cell_size // 2,
+                    board.start_y + row * board.cell_size + board.cell_size // 2,
+                )
+            )
+            screen.blit(letter_text, text_rect)
+
+        # Dibujar las celdas del tablero de ataque
+        for row in range(board.board_size):
+            for col in range(board.board_size):
+                x = board.start_x + col * board.cell_size
+                y = board.start_y + row * board.cell_size
+
+                attack_cell = attack_board[row][col]
+                state = attack_cell["state"]
+
+                if state == 0:
+                    color = config.colors["cell"]
+                elif state == 1:
+                    color = config.colors["water"]
+                elif state == 2:
+                    color = config.colors["hit"]
+                elif state == 4:
+                    color = config.colors["shielded"]
+                elif state == 5:
+                    color = config.colors["radar_detected"]
+                else:
+                    color = config.colors["cell"]
+
+                pygame.draw.rect(screen, color, (x, y, board.cell_size, board.cell_size))
+                pygame.draw.rect(screen, config.colors["border"], (x, y, board.cell_size, board.cell_size), 1)
 
 ui = UI()

@@ -6,11 +6,7 @@ from modules.ui import ui
 from modules.player import Player
 from modules.game_logic import place_ships, draw_central_area
 from modules.utils import handle_menu_navigation
-from modules.buttons import (
-    draw_button,
-    handle_button_interaction,
-    is_mouse_over_button,
-)
+from modules.buttons import draw_button, handle_button_interaction, is_mouse_over_button
 from modules.attacks_logic import bot_attack
 
 def initialize_game():
@@ -98,7 +94,7 @@ def start_game(player_board, player, bot_board, bot):
                     current_round,
                 )
                 ui.update_display()
-                time.sleep(1)
+                time.sleep(3)
                 bot.place_fleet_randomly()
                 current_turn = "player_turn"
 
@@ -112,13 +108,39 @@ def start_game(player_board, player, bot_board, bot):
                 current_round=current_round
             )
             ui.update_display()
+            time.sleep(1.5)
+
+            # Al final del turno del jugador, ajustar estamina
+            if current_turn == "bot_turn":
+                if player.last_attack_type == "normal_attack":
+                    ui.update_display()
+                    player.stamina += 2
+                else:
+                    player.stamina += 1
+                    ui.update_display()
 
         elif current_turn == "bot_turn":
             # Lógica de ataque del bot
             current_turn = bot_attack(
                 ui.screen, bot, player, player_board, current_round
             )
+            ui.update_display()
             current_round += 1  # Incrementar la ronda
+
+            # Al final del turno del bot, ajustar estamina
+            if current_turn.startswith("player_turn"):
+                if bot.last_attack_type == "normal_attack":
+                    bot.stamina += 2
+                else:
+                    bot.stamina += 1
+
+        # Verificar condiciones de victoria
+        if player.life <= 0:
+            display_winner("Bot")
+            running = False
+        elif bot.life <= 0:
+            display_winner("Jugador")
+            running = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -126,7 +148,19 @@ def start_game(player_board, player, bot_board, bot):
                 exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
-                
+
+def display_winner(winner_name):
+    """Muestra la pantalla de victoria."""
+    font = pygame.font.Font(config.font_bold, 48)
+    message = f"¡{winner_name} ha ganado!"
+    text_surface = font.render(message, True, config.colors["text"])
+    text_rect = text_surface.get_rect(center=(config.WINDOW_WIDTH // 2, config.WINDOW_HEIGHT // 2))
+
+    ui.fill_background()
+    ui.screen.blit(text_surface, text_rect)
+    ui.update_display()
+    time.sleep(5)
+
 def display_text_screen(text_lines):
     """Despliega una pantalla de texto simple."""
     running = True
@@ -173,9 +207,8 @@ if __name__ == "__main__":
     pygame.font.init()
     pygame.display.set_icon(config.icon)
 
-    player_board, player, bot_board, bot = initialize_game()
-
     while True:
+        player_board, player, bot_board, bot = initialize_game()
         action = main_menu()
 
         if action == "Start Game":

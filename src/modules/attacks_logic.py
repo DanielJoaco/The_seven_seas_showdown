@@ -5,7 +5,6 @@ from modules.utils import (
     display_message,
     draw_preview,
     handle_navigation_and_selection,
-    draw_attack_board,
     toggle_orientation
 )
 from modules.ui import ui
@@ -27,7 +26,10 @@ def handle_attack_action(screen, player, bot, bot_board, attack_type, current_ro
 
     handler = attack_handlers.get(attack_type)
     if handler:
-        return handler(screen, player, bot, bot_board, current_round)
+        result = handler(screen, player, bot, bot_board, current_round)
+        # Registrar el tipo de ataque utilizado
+        player.last_attack_type = attack_type
+        return result
     else:
         print(f"Tipo de ataque desconocido: {attack_type}")
         return "player_turn"
@@ -56,10 +58,10 @@ def handle_normal_attack(screen, player, bot, bot_board, current_round):
 
     result = bot.receive_attack(selected_row, selected_col)
     update_attack_board(player, selected_row, selected_col, result)
-
+    # Limpiar la pantalla y dibujar el estado del juego
+    screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player.board, bot_board, "player_turn_attack", current_round)
     ui.update_display()
-
     if result == "hit":
         display_message(screen, "¡Impacto!")
         return "player_turn_attack"
@@ -108,7 +110,9 @@ def handle_line_attack(screen, player, bot, bot_board, current_round):
                 any_hit = True
             elif result == "shielded":
                 any_hit = True
-
+                
+    # Limpiar la pantalla y dibujar el estado del juego
+    screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player.board, bot_board, "player_turn_attack", current_round)
     ui.update_display()
 
@@ -154,7 +158,9 @@ def handle_square_attack(screen, player, bot, bot_board, current_round):
                 any_hit = True
             elif result == "shielded":
                 any_hit = True
-
+                
+    # Limpiar la pantalla y dibujar el estado del juego
+    screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player.board, bot_board, "player_turn_attack", current_round)
     ui.update_display()
 
@@ -166,9 +172,6 @@ def handle_square_attack(screen, player, bot, bot_board, current_round):
         return "bot_turn"
 
 def handle_radar(screen, player, bot, bot_board, current_round):
-    """
-    Maneja la habilidad del radar.
-    """
     ability_cost = 4
     if player.stamina < ability_cost:
         display_message(screen, "No tienes suficiente estamina para usar el radar.")
@@ -191,9 +194,15 @@ def handle_radar(screen, player, bot, bot_board, current_round):
         player.attack_board[row][col]["color"] = config.colors["radar_detected"]
         display_message(screen, "¡Radar detectó un barco cercano!")
     else:
-        display_message(screen, "No se detectaron barcos cercanos.")
+        display_message(screen, "No se detectaron barcos cercanos o todos los barcos han sido detectados.")
 
+    # Limpiar la pantalla antes de dibujar
+    screen.fill(config.colors["background"])
+
+    # Dibujar el estado actualizado del juego
     ui.draw_game_state(screen, player, bot, player.board, bot_board, "player_turn_attack", current_round)
+
+    # Actualizar la pantalla
     ui.update_display()
 
     return "bot_turn"
@@ -253,7 +262,7 @@ def select_attack_cell(screen, bot_board, player, bot, attack_type="normal_attac
         ui.draw_game_state(screen, player, bot, player.board, bot_board, "attack_selection", current_round)
 
         # Dibujar el tablero de ataque
-        draw_attack_board(screen, bot_board, player.attack_board)
+        ui.draw_attack_board(screen, bot_board, player.attack_board)
 
         # Dibujar la previsualización de ataque
         draw_preview(
@@ -315,7 +324,7 @@ def select_attack_line(screen, bot_board, player, bot, attack_type="line_attack"
         ui.draw_game_state(screen, player, bot, player.board, bot_board, "attack_selection", current_round)
 
         # Dibujar el tablero de ataque
-        draw_attack_board(screen, bot_board, player.attack_board)
+        ui.draw_attack_board(screen, bot_board, player.attack_board)
 
         # Dibujar la previsualización de ataque
         draw_preview(
@@ -346,75 +355,87 @@ def update_attack_board(player, row, col, result):
         player.attack_board[row][col]["color"] = config.colors["shielded"]
 
 def find_nearest_ship_cell(bot_board, selected_row, selected_col, player):
-    """
-    Encuentra la celda más cercana con un barco enemigo no atacado.
-    """
     min_distance = math.inf
     nearest_cell = None
     for row in range(bot_board.board_size):
         for col in range(bot_board.board_size):
             cell = bot_board.grid[row][col]
-            if cell["ship"] is not None and cell["state"] == 1:  # Barco no atacado
-                distance = math.sqrt((row - selected_row) ** 2 + (col - selected_col) ** 2)
-                if distance < min_distance:
-                    # Verificar si la celda no ha sido detectada ya por el radar
-                    if player.attack_board[row][col]["state"] != 5:
+            # Verificar si hay un barco no atacado en esta celda
+            if cell["ship"] is not None and cell["state"] == 1:  # Estado 1: Barco no atacado
+                # Verificar si la celda no ha sido detectada ya por el radar
+                if player.attack_board[row][col]["state"] != 5:
+                    # Calcular la distancia Manhattan
+                    distance = abs(row - selected_row) + abs(col - selected_col)
+                    if distance < min_distance:
                         min_distance = distance
                         nearest_cell = (row, col)
     return nearest_cell
+
 
 def bot_attack(screen, bot, player, player_board, current_round):
     """
     Lógica de ataque del bot.
     """
     time.sleep(1)
-    abilities = ["normal_attack", "line_attack", "square_attack", "use_radar", "use_shield"]
-    ability_costs = {
-        "normal_attack": 0,
-        "line_attack": 3,
-        "square_attack": 4,
-        "use_radar": 4,
-        "use_shield": 3,
-    }
+    continue_attacking = True  # Variable para controlar ataques adicionales
+    while continue_attacking:
+        abilities = ["normal_attack", "line_attack", "square_attack", "use_radar", "use_shield"]
+        ability_costs = {
+            "normal_attack": 0,
+            "line_attack": 3,
+            "square_attack": 4,
+            "use_radar": 4,
+            "use_shield": 3,
+        }
 
-    # Decidir qué habilidad usar
-    if bot.stamina < 4:
-        attack_type = "normal_attack"
-    else:
-        attack_type = random.choice(abilities)
+        # Decidir qué habilidad usar
+        if bot.stamina < 4:
+            attack_type = "normal_attack"
+        else:
+            attack_type = random.choice(abilities)
 
-    # Verificar si el bot tiene suficiente estamina
-    if bot.stamina < ability_costs[attack_type]:
-        attack_type = "normal_attack"
+        # Verificar si el bot tiene suficiente estamina
+        if bot.stamina < ability_costs[attack_type]:
+            attack_type = "normal_attack"
 
-    # Narrar la acción del bot
-    action_messages = {
-        "normal_attack": "El bot realiza un ataque normal.",
-        "line_attack": "El bot utiliza un ataque lineal.",
-        "square_attack": "El bot utiliza un ataque cuadrado.",
-        "use_radar": "El bot utiliza el radar.",
-        "use_shield": "El bot activa un escudo.",
-    }
-    display_message(screen, action_messages[attack_type], delay=2000)
+        # Registrar el tipo de ataque utilizado
+        bot.last_attack_type = attack_type
 
-    # Ejecutar la acción
-    bot_action_handlers = {
-        "normal_attack": bot_handle_normal_attack,
-        "line_attack": bot_handle_line_attack,
-        "square_attack": bot_handle_square_attack,
-        "use_radar": bot_handle_radar,
-        "use_shield": bot_handle_shield,
-    }
+        # Narrar la acción del bot
+        action_messages = {
+            "normal_attack": "El bot realiza un ataque normal.",
+            "line_attack": "El bot utiliza un ataque lineal.",
+            "square_attack": "El bot utiliza un ataque cuadrado.",
+            "use_radar": "El bot utiliza el radar.",
+            "use_shield": "El bot activa un escudo.",
+        }
+        display_message(screen, action_messages[attack_type], delay=2000)
 
-    handler = bot_action_handlers.get(attack_type)
-    if handler:
-        result = handler(screen, bot, player, player_board, current_round)
-        ui.update_display()
-        time.sleep(1)
-        return result
-    else:
-        print(f"Tipo de ataque desconocido: {attack_type}")
-        return "player_turn"
+        # Ejecutar la acción
+        bot_action_handlers = {
+            "normal_attack": bot_handle_normal_attack,
+            "line_attack": bot_handle_line_attack,
+            "square_attack": bot_handle_square_attack,
+            "use_radar": bot_handle_radar,
+            "use_shield": bot_handle_shield,
+        }
+
+        handler = bot_action_handlers.get(attack_type)
+        if handler:
+            result, hit_success = handler(screen, bot, player, player_board, current_round)
+            ui.update_display()
+            time.sleep(1)
+            if hit_success and attack_type != "use_radar" and attack_type != "use_shield":
+                # Si el bot acertó y no fue radar o escudo, ataca de nuevo
+                display_message(screen, "El bot ataca de nuevo por acertar un ataque.", delay=1500)
+                continue_attacking = True
+            else:
+                continue_attacking = False
+                return "player_turn"
+        else:
+            print(f"Tipo de ataque desconocido: {attack_type}")
+            continue_attacking = False
+            return "player_turn"
 
 def bot_handle_normal_attack(screen, bot, player, player_board, current_round):
     """
@@ -431,7 +452,7 @@ def bot_handle_normal_attack(screen, bot, player, player_board, current_round):
         if bot.attack_board[row][col]["state"] == 0
     ]
     if not valid_cells:
-        return "player_turn"
+        return "player_turn", False
 
     selected_row, selected_col = random.choice(valid_cells)
 
@@ -441,14 +462,18 @@ def bot_handle_normal_attack(screen, bot, player, player_board, current_round):
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
 
+    hit_success = False  # Variable para determinar si el bot acertó
     if result == "hit":
         display_message(screen, "¡El bot te ha golpeado!", delay=1500)
+        hit_success = True
     elif result == "shielded":
         display_message(screen, "¡Tu escudo bloqueó el ataque del bot!", delay=1500)
+        hit_success = False
     else:
         display_message(screen, "El bot falló su ataque.", delay=1500)
+        hit_success = False
 
-    return "player_turn"
+    return "player_turn", hit_success
 
 def bot_handle_line_attack(screen, bot, player, player_board, current_round):
     """
@@ -484,7 +509,7 @@ def bot_handle_line_attack(screen, bot, player, player_board, current_round):
             if result == "hit":
                 any_hit = True
             elif result == "shielded":
-                any_hit = True
+                any_hit = False  # Escudo bloqueó el ataque
 
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
@@ -494,7 +519,7 @@ def bot_handle_line_attack(screen, bot, player, player_board, current_round):
     else:
         display_message(screen, "El bot falló su ataque lineal.", delay=1500)
 
-    return "player_turn"
+    return "player_turn", any_hit
 
 def bot_handle_square_attack(screen, bot, player, player_board, current_round):
     """
@@ -522,7 +547,7 @@ def bot_handle_square_attack(screen, bot, player, player_board, current_round):
             if result == "hit":
                 any_hit = True
             elif result == "shielded":
-                any_hit = True
+                any_hit = False  # Escudo bloqueó el ataque
 
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
@@ -532,7 +557,7 @@ def bot_handle_square_attack(screen, bot, player, player_board, current_round):
     else:
         display_message(screen, "El bot falló su ataque cuadrado.", delay=1500)
 
-    return "player_turn"
+    return "player_turn", any_hit
 
 def bot_handle_radar(screen, bot, player, player_board, current_round):
     """
@@ -555,7 +580,7 @@ def bot_handle_radar(screen, bot, player, player_board, current_round):
     else:
         display_message(screen, "El bot usó el radar pero no encontró nada.", delay=1500)
 
-    return "player_turn"
+    return "player_turn", False  # El radar no concede ataques adicionales
 
 def bot_handle_shield(screen, bot, player, player_board, current_round):
     """
@@ -568,7 +593,7 @@ def bot_handle_shield(screen, bot, player, player_board, current_round):
     bot.temp_shield = True
     display_message(screen, "El bot ha activado un escudo.", delay=1500)
 
-    return "player_turn"
+    return "player_turn", False  # El escudo no concede ataques adicionales
 
 def update_bot_attack_board(bot, row, col, result):
     """
@@ -593,7 +618,7 @@ def find_nearest_ship_cell(board, selected_row, selected_col, player):
     for row in range(board.board_size):
         for col in range(board.board_size):
             cell = board.grid[row][col]
-            if cell["ship"] is not None and cell["state"] == 1:  # Barco no atacado
+            if cell["ship"] is not None and cell["state"] == 0:  # Barco no atacado
                 distance = math.sqrt((row - selected_row) ** 2 + (col - selected_col) ** 2)
                 if distance < min_distance:
                     # Verificar si la celda no ha sido detectada ya por el radar

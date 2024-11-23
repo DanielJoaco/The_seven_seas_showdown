@@ -1,21 +1,6 @@
 import pygame
 from modules.config import config
-
-def draw_panel(screen, x, y, width, height, info, font):
-    """
-    Dibuja un panel de información en la pantalla.
-    """
-    pygame.draw.rect(
-        screen, config.colors["background"], (x, y, width, height), border_radius=10
-    )
-    pygame.draw.rect(
-        screen, config.colors["border"], (x, y, width, height), 2, border_radius=10
-    )
-    padding = 10
-    line_height = 30
-    for i, (key, value) in enumerate(info.items()):
-        text = font.render(f"{key}: {value}", True, config.colors["text"])
-        screen.blit(text, (x + padding, y + padding + i * line_height))
+from modules.ui import ui
 
 def draw_empty_board(screen, board):
     """
@@ -126,23 +111,19 @@ def toggle_orientation(orientation):
     """
     return "V" if orientation == "H" else "H"
 
-def display_message(screen, message, delay=1500):
+def display_message(screen, message, delay=1000):
     """
     Muestra un mensaje en el área central de la pantalla.
     """
-    button_area_width = 300
-    button_area_height = 150
+    button_area_width = 400
+    button_area_height = 400
     button_area_x = config.WINDOW_WIDTH // 2 - button_area_width // 2
     button_area_y = config.WINDOW_HEIGHT // 2 - button_area_height // 2
     button_area_rect = pygame.Rect(
         button_area_x, button_area_y, button_area_width, button_area_height
     )
-
     pygame.draw.rect(
         screen, config.colors["background"], button_area_rect, border_radius=10
-    )
-    pygame.draw.rect(
-        screen, config.colors["border"], button_area_rect, width=4, border_radius=10
     )
 
     font = pygame.font.Font(config.font_regular, 24)
@@ -151,8 +132,9 @@ def display_message(screen, message, delay=1500):
         center=(button_area_rect.centerx, button_area_rect.centery)
     )
     screen.blit(message_text, message_text_rect)
-    pygame.display.flip()
+    ui.update_display()
     pygame.time.delay(delay)
+    
     
 def draw_preview(screen, board, selected_row, selected_col, orientation, preview_type="ship", attack_board=None, size=None):
     """
@@ -222,31 +204,3 @@ def draw_preview(screen, board, selected_row, selected_col, orientation, preview
                 (x, y, board.cell_size, board.cell_size),
                 2,
             )
-
-def draw_attack_board(screen, board, attack_board):
-    """
-    Dibuja el tablero de ataque del jugador (su vista del tablero del bot).
-    """
-    for row in range(board.board_size):
-        for col in range(board.board_size):
-            x = board.start_x + col * board.cell_size
-            y = board.start_y + row * board.cell_size
-
-            attack_cell = attack_board[row][col]
-            state = attack_cell["state"]
-
-            if state == 0:
-                color = config.colors["cell"]
-            elif state == 1:
-                color = config.colors["water"]
-            elif state == 2:
-                color = config.colors["hit"]
-            elif state == 4:
-                color = config.colors["shielded"]
-            elif state == 5:
-                color = config.colors["radar_detected"]
-            else:
-                color = config.colors["cell"]
-
-            pygame.draw.rect(screen, color, (x, y, board.cell_size, board.cell_size))
-            pygame.draw.rect(screen, config.colors["border"], (x, y, board.cell_size, board.cell_size), 1)

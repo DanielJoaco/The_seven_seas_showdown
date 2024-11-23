@@ -18,6 +18,7 @@ class Player:
             [{"color": None, "state": 0, "ship": None} for _ in range(board.board_size)]
             for _ in range(board.board_size)
         ]
+        self.last_attack_type = None    
 
     def place_fleet_randomly(self):
         """Coloca toda la flota aleatoriamente en el tablero."""
