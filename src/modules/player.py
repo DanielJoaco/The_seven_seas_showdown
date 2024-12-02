@@ -62,7 +62,7 @@ class Player:
         Recibe un ataque en una posición específica.
         """
         cell = self.board.grid[row][col]
-        if cell["state"] == 1:
+        if cell["state"] == 1 or self.temp_shield:
             if self.temp_shield:
                 self.temp_shield = False
                 return "shielded"

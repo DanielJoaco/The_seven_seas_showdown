@@ -13,7 +13,7 @@ class Config:
         # Colores centralizados
         self.colors = {
             "background": (34, 87, 122),
-            "cell": (53, 172, 120),
+            "cell": (22, 46, 80),
             "button": (53, 172, 120),
             "hovered_button": (199, 249, 204),
             "selected_cell": (199, 249, 204),
@@ -21,12 +21,10 @@ class Config:
             "selected_border": (255, 255, 255),
             "text": (229, 88, 18),
             "water": (105, 105, 105),
-            "hit": (255, 0, 0),
+            "hit": (229, 88, 18),
             "disabled_button": (128, 128, 128),
             "preview_attack": (255, 255, 0),
-            "radar": (0, 0, 139),  # Azul oscuro para el radar
             "shielded": (0, 0, 139),  # Usamos el mismo color para celdas protegidas por escudo
-            "radar_detected": (0, 0, 139),  # Color para celdas detectadas por el radar
         }
 
         # Configuración del tablero

@@ -5,6 +5,7 @@ class UI:
     def __init__(self):
         self.screen = None
         self.clock = pygame.time.Clock()
+        self.fondo = None  # Aquí se almacenará la imagen de fondo
 
     def init_screen(self):
         """Inicializa la pantalla de Pygame según la configuración en config."""
@@ -12,10 +13,15 @@ class UI:
             (config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
         )
         pygame.display.set_caption("The Seven Seas Showdown")
+        
+        # Cargar la imagen de fondo
+        self.fondo = pygame.image.load("./assets/images/background.png")
+        # Asegurarse de que la imagen se ajusta al tamaño de la ventana
+        self.fondo = pygame.transform.scale(self.fondo, (config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
 
     def fill_background(self):
-        """Rellena la pantalla con el color de fondo actual de config."""
-        self.screen.fill(config.colors["background"])
+        """Dibuja la imagen de fondo en la pantalla."""
+        self.screen.blit(self.fondo, (0, 0))
 
     def update_display(self):
         """Actualiza la pantalla y controla el framerate."""
@@ -26,6 +32,9 @@ class UI:
         """
         Dibuja el estado actual del juego con la información de los jugadores y tableros.
         """
+        # Llamamos a fill_background para dibujar la imagen de fondo
+        self.fill_background()
+
         font_title = pygame.font.Font(config.font_bold, 54)
         font_info = pygame.font.Font(config.font_regular, 32)
 
@@ -84,10 +93,7 @@ class UI:
         for col in range(board.board_size):
             number_text = font.render(str(col + 1), True, config.colors["text"])
             text_rect = number_text.get_rect(
-                center=(
-                    board.start_x + col * board.cell_size + board.cell_size // 2,
-                    board.start_y - board.cell_size // 2,
-                )
+                center=(board.start_x + col * board.cell_size + board.cell_size // 2, board.start_y - board.cell_size // 2)
             )
             screen.blit(number_text, text_rect)
 
@@ -95,10 +101,8 @@ class UI:
         for row in range(board.board_size):
             letter_text = font.render(chr(65 + row), True, config.colors["text"])
             text_rect = letter_text.get_rect(
-                center=(
-                    board.start_x + board.board_size * board.cell_size + board.cell_size // 2,
-                    board.start_y + row * board.cell_size + board.cell_size // 2,
-                )
+                center=(board.start_x + board.board_size * board.cell_size + board.cell_size // 2,
+                        board.start_y + row * board.cell_size + board.cell_size // 2)
             )
             screen.blit(letter_text, text_rect)
 

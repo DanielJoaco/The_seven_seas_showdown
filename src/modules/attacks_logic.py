@@ -20,7 +20,6 @@ def handle_attack_action(screen, player, bot, bot_board, attack_type, current_ro
         "normal_attack": handle_normal_attack,
         "line_attack": handle_line_attack,
         "square_attack": handle_square_attack,
-        "use_radar": handle_radar,
         "use_shield": handle_shield,
     }
 
@@ -171,42 +170,6 @@ def handle_square_attack(screen, player, bot, bot_board, current_round):
         display_message(screen, "Ataque cuadrado falló.")
         return "bot_turn"
 
-def handle_radar(screen, player, bot, bot_board, current_round):
-    ability_cost = 3
-    if player.stamina < ability_cost:
-        display_message(screen, "No tienes suficiente estamina para usar el radar.")
-        return "player_turn"
-
-    selected_row, selected_col, orientation, confirm = select_attack_cell(
-        screen, bot_board, player, bot, attack_type="radar", current_round=current_round)
-
-    if not confirm:
-        return "player_turn"
-
-    # Reduce estamina
-    player.stamina -= ability_cost
-
-    # Encontrar la celda más cercana con un barco enemigo no atacado
-    nearest_cell = find_nearest_ship_cell(bot_board, selected_row, selected_col, player)
-    if nearest_cell:
-        row, col = nearest_cell
-        player.attack_board[row][col]["state"] = 5  # Nuevo estado para radar detectado
-        player.attack_board[row][col]["color"] = config.colors["radar_detected"]
-        display_message(screen, "¡Radar detectó un barco cercano!")
-    else:
-        display_message(screen, "No se detectaron barcos cercanos o todos los barcos han sido detectados.")
-
-    # Limpiar la pantalla antes de dibujar
-    screen.fill(config.colors["background"])
-
-    # Dibujar el estado actualizado del juego
-    ui.draw_game_state(screen, player, bot, player.board, bot_board, "player_turn_attack", current_round)
-
-    # Actualizar la pantalla
-    ui.update_display()
-
-    return "bot_turn"
-
 def handle_shield(screen, player, bot, bot_board, current_round):
     """
     Maneja la habilidad del escudo.
@@ -354,23 +317,6 @@ def update_attack_board(player, row, col, result):
         player.attack_board[row][col]["state"] = 4  # Escudo
         player.attack_board[row][col]["color"] = config.colors["shielded"]
 
-def find_nearest_ship_cell(bot_board, selected_row, selected_col, player):
-    min_distance = math.inf
-    nearest_cell = None
-    for row in range(bot_board.board_size):
-        for col in range(bot_board.board_size):
-            cell = bot_board.grid[row][col]
-            # Verificar si hay un barco no atacado en esta celda
-            if cell["ship"] is not None and cell["state"] == 0:  # Estado 0: Celda no atacada
-                # Verificar si la celda no ha sido detectada ya por el radar
-                if player.attack_board[row][col]["state"] != 5:
-                    # Calcular la distancia Manhattan
-                    distance = abs(row - selected_row) + abs(col - selected_col)
-                    if distance < min_distance:
-                        min_distance = distance
-                        nearest_cell = (row, col)
-    return nearest_cell
-
 def bot_attack(screen, bot, player, player_board, current_round):
     """
     Lógica de ataque del bot.
@@ -378,13 +324,12 @@ def bot_attack(screen, bot, player, player_board, current_round):
     time.sleep(1)
     continue_attacking = True  # Variable para controlar ataques adicionales
     while continue_attacking:
-        abilities = ["normal_attack", "line_attack", "square_attack", "use_radar", "use_shield"]
+        abilities = ["normal_attack", "line_attack", "square_attack", "use_shield"]
         ability_costs = {
             "normal_attack": 0,
             "line_attack": 3,
             "square_attack": 4,
-            "use_radar": 4,
-            "use_shield": 3,
+            "use_shield": 2,
         }
 
         # Decidir qué habilidad usar
@@ -405,7 +350,6 @@ def bot_attack(screen, bot, player, player_board, current_round):
             "normal_attack": "El bot realiza un ataque normal.",
             "line_attack": "El bot utiliza un ataque lineal.",
             "square_attack": "El bot utiliza un ataque cuadrado.",
-            "use_radar": "El bot utiliza el radar.",
             "use_shield": "El bot activa un escudo.",
         }
 
@@ -416,7 +360,6 @@ def bot_attack(screen, bot, player, player_board, current_round):
             "normal_attack": bot_handle_normal_attack,
             "line_attack": bot_handle_line_attack,
             "square_attack": bot_handle_square_attack,
-            "use_radar": bot_handle_radar,
             "use_shield": bot_handle_shield,
         }
 
@@ -562,29 +505,6 @@ def bot_handle_square_attack(screen, bot, player, player_board, current_round):
 
     return "player_turn", any_hit
 
-def bot_handle_radar(screen, bot, player, player_board, current_round):
-    """
-    Maneja la habilidad del radar del bot.
-    """
-    ability_cost = 4
-    bot.stamina -= ability_cost
-
-    # Seleccionar aleatoriamente una celda
-    selected_row = random.randint(0, player_board.board_size - 1)
-    selected_col = random.randint(0, player_board.board_size - 1)
-
-    # Encontrar la celda más cercana con un barco enemigo no atacado
-    nearest_cell = find_nearest_ship_cell(player_board, selected_row, selected_col, bot)
-    if nearest_cell:
-        row, col = nearest_cell
-        bot.attack_board[row][col]["state"] = 5  # Estado especial para radar detectado
-        bot.attack_board[row][col]["color"] = config.colors["radar_detected"]
-        display_message(screen, "El bot usó el radar y encontró un barco.", delay=1500)
-    else:
-        display_message(screen, "El bot usó el radar pero no encontró nada.", delay=1500)
-
-    return "player_turn", False  # El radar no concede ataques adicionales
-
 def bot_handle_shield(screen, bot, player, player_board, current_round):
     """
     Maneja la habilidad del escudo del bot.
@@ -608,24 +528,6 @@ def update_bot_attack_board(bot, row, col, result):
     elif result == "miss":
         bot.attack_board[row][col]["state"] = 1  # Agua
         bot.attack_board[row][col]["color"] = config.colors["water"]
-    elif result == "shielded":
+    elif result == "shielded" or result == "use_shield":
         bot.attack_board[row][col]["state"] = 4  # Escudo
         bot.attack_board[row][col]["color"] = config.colors["shielded"]
-
-def find_nearest_ship_cell(board, selected_row, selected_col, player):
-    """
-    Encuentra la celda más cercana con un barco enemigo no atacado.
-    """
-    min_distance = math.inf
-    nearest_cell = None
-    for row in range(board.board_size):
-        for col in range(board.board_size):
-            cell = board.grid[row][col]
-            if cell["ship"] is not None and cell["state"] == 0:  # Barco no atacado
-                distance = math.sqrt((row - selected_row) ** 2 + (col - selected_col) ** 2)
-                if distance < min_distance:
-                    # Verificar si la celda no ha sido detectada ya por el radar
-                    if player.attack_board[row][col]["state"] != 5:
-                        min_distance = distance
-                        nearest_cell = (row, col)
-    return nearest_cell

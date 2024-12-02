@@ -10,8 +10,8 @@ def dice_turn(screen, message, button_area_rect):
     font = pygame.font.Font(config.font_regular, 24)
 
     button_config = {
-        "x": button_area_rect.x + 50,
-        "y": button_area_rect.y + 100,
+        "x": button_area_rect.x + 100,
+        "y": button_area_rect.y + 80,
         "width": 200,
         "height": 50,
     }

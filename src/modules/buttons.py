@@ -46,11 +46,10 @@ def draw_action_buttons(screen, button_area_rect, player):
         "width": 120,
         "height": 40,
         "positions": [
-            (button_area_rect.x + 20, button_area_rect.y + 20),
-            (button_area_rect.x + 160, button_area_rect.y + 20),
-            (button_area_rect.x + 20, button_area_rect.y + 70),
-            (button_area_rect.x + 160, button_area_rect.y + 70),
-            (button_area_rect.x + 90, button_area_rect.y + 120),
+            (button_area_rect.x + 70, button_area_rect.y + 30),
+            (button_area_rect.x + 210, button_area_rect.y + 30),
+            (button_area_rect.x + 70, button_area_rect.y + 80),
+            (button_area_rect.x + 210, button_area_rect.y + 80)
         ],
     }
 
@@ -59,7 +58,6 @@ def draw_action_buttons(screen, button_area_rect, player):
         {"label": "A. normal", "cost": 0, "action": "normal_attack"},
         {"label": "A. Lineal", "cost": 3, "action": "line_attack"},
         {"label": "A. Cuadrado", "cost": 4, "action": "square_attack"},
-        {"label": "Radar", "cost": 4, "action": "use_radar"},
         {"label": "Escudo", "cost": 3, "action": "use_shield"},
     ]
 

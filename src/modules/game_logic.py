@@ -84,7 +84,7 @@ def draw_central_area(
     """
     Maneja la lógica del área central del turno, renderizando los botones y el mensaje.
     """
-    button_area_width = 300
+    button_area_width = 400
     button_area_height = 150
     button_area_x = config.WINDOW_WIDTH // 2 - button_area_width // 2
     button_area_y = config.WINDOW_HEIGHT // 2 - button_area_height // 2

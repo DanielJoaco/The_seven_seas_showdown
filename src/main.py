@@ -11,7 +11,7 @@ from modules.attacks_logic import bot_attack
 
 def initialize_game():
     """Inicializa los elementos principales del juego: tableros y jugadores."""
-    board_size = 10
+    board_size = 14
     player_board = Board(board_size)
     player = Player("Jugador", player_board)
     bot_board = Board(board_size)
@@ -22,6 +22,11 @@ def main_menu():
     """Despliega el menú principal y maneja la navegación entre opciones."""
     ui.init_screen()
     font = pygame.font.Font(config.font_bold, 30)
+    
+    # Carga el archivo MP3
+    pygame.mixer.music.load("./assets/sounds/menu.mp3")
+    # Reproduce el MP3 en bucle (-1 significa bucle infinito)
+    pygame.mixer.music.play(loops=-1)
 
     # Definir los botones del menú
     button_specs = [
@@ -54,6 +59,7 @@ def main_menu():
 
             selected_index, confirm = handle_menu_navigation(event, selected_index, num_buttons)
             if confirm:
+                pygame.mixer.music.stop()
                 return button_specs[selected_index][4]
 
             hovered_index = handle_button_interaction(
@@ -65,6 +71,7 @@ def main_menu():
                     last_input = "mouse"
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
+                    pygame.mixer.music.stop()
                     return button_specs[hovered_index][4]
 
 def start_game(player_board, player, bot_board, bot):
@@ -72,6 +79,14 @@ def start_game(player_board, player, bot_board, bot):
     running = True
     current_turn = "placing_player_ships"
     current_round = 1
+    # Cargar la imagen de fondo
+    fondo = pygame.image.load("./assets/images/background.png")
+    
+    pygame.mixer.music.load("./assets/sounds/battle.mp3")
+    pygame.mixer.music.play(loops=-1)
+
+    # Asegúrate de que la imagen se ajusta al tamaño de la ventana
+    fondo = pygame.transform.scale(fondo, (config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
 
     while running:
         ui.fill_background()
@@ -148,6 +163,7 @@ def start_game(player_board, player, bot_board, bot):
                 pygame.quit()
                 exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.mixer.music.stop()
                 running = False
 
 def display_winner(winner_name):
