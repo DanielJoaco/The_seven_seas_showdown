@@ -3,7 +3,7 @@ import pygame
 class Config:
     def __init__(self, board_size=20):
         # Configuración de la ventana
-        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = 1280, 720
+        self.WINDOW_WIDTH, self.WINDOW_HEIGHT = 1180, 660
         self.CELL_SIZE = 25
         self.BORDER_WIDTH = 1
         self.icon = pygame.image.load("./assets/images/icon.png")

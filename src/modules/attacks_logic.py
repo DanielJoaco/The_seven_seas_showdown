@@ -184,7 +184,7 @@ def handle_shield(screen, player, bot, bot_board, current_round):
 
     # Activar el escudo temporal
     player.temp_shield = True
-    display_message(screen, "¡Escudo activado! Estás protegido del próximo ataque.")
+    display_message(screen, "¡Escudo activado!")
 
     # Permite atacar en el mismo turno
     return "player_turn_attack"

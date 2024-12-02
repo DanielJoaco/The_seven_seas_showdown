@@ -59,7 +59,6 @@ def main_menu():
 
             selected_index, confirm = handle_menu_navigation(event, selected_index, num_buttons)
             if confirm:
-                pygame.mixer.music.stop()
                 return button_specs[selected_index][4]
 
             hovered_index = handle_button_interaction(
@@ -70,12 +69,12 @@ def main_menu():
                     selected_index = hovered_index
                     last_input = "mouse"
 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pygame.mixer.music.stop()
+                if event.type == pygame.MOUSEBUTTONDOWN:                    
                     return button_specs[hovered_index][4]
 
 def start_game(player_board, player, bot_board, bot):
     """Inicia el flujo principal del juego."""
+    pygame.mixer.music.stop()
     running = True
     current_turn = "placing_player_ships"
     current_round = 1
@@ -217,11 +216,28 @@ def show_rules():
     """Despliega las reglas del juego."""
     rules = [
         "Reglas del Juego:",
-        "1. Hundir todos los barcos enemigos.",
-        "2. Los jugadores se turnan para atacar.",
-        "Presiona ESC para regresar al menú principal.",
+        "1. Al inicio, cada jugador (y el bot) debe colocar sus barcos en el tablero.",
+        "2. Después de colocar los barcos, inicia la fase de ataque.",
+        "3. El jugador tira un dado y puede obtener uno de los siguientes efectos aleatorios:",
+        "   - Ganar estamina.",
+        "   - Perder el turno.",
+        "   - Perder vida.",
+        "   - No pasar nada.",
+        "4. Si el jugador no pierde el turno, puede atacar.",
+        "5. Los ataques normales no requieren estamina y al final del turno el jugador gana +2 de estamina.",
+        "6. Los ataques especiales requieren estamina:",
+        "   - El ataque cuadrado cuesta 4 de estamina.",
+        "   - El ataque en línea cuesta 3 de estamina.",
+        "   - Usar el escudo cuesta 3 de estamina, pero permite al jugador atacar.",
+        "   - El uso de ataques especiales otroga +1 de estamina al finalizar el turno.",
+        "7. El jugador y el bot siguen atacando hasta que dejen de acertar en una celda con un barco enemigo.",
+        "8. El objetivo del juego es eliminar todos los puntos de vida del rival.",
+        "9. El jugador gana cuando haya reducido a cero los puntos de vida del bot, o viceversa.",
+        "10. Para regresar al menú principal, presiona ESC."
     ]
     display_text_screen(rules)
+
+
 
 def show_settings():
     """Muestra las configuraciones del juego."""
