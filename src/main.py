@@ -11,7 +11,7 @@ from modules.attacks_logic import bot_attack
 
 def initialize_game():
     """Inicializa los elementos principales del juego: tableros y jugadores."""
-    board_size = 8
+    board_size = 12
     player_board = Board(board_size)
     player = Player("Jugador", player_board)
     bot_board = Board(board_size)
@@ -254,9 +254,10 @@ if __name__ == "__main__":
     pygame.font.init()
     pygame.display.set_icon(config.icon)
 
+
     while True:
         player_board, player, bot_board, bot = initialize_game()
-        action = main_menu()
+        action = main_menu()        
 
         if action == "Start Game":
             start_game(player_board, player, bot_board, bot)
