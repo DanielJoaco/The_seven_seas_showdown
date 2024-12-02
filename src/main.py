@@ -11,7 +11,7 @@ from modules.attacks_logic import bot_attack
 
 def initialize_game():
     """Inicializa los elementos principales del juego: tableros y jugadores."""
-    board_size = 14
+    board_size = 8
     player_board = Board(board_size)
     player = Player("Jugador", player_board)
     bot_board = Board(board_size)
@@ -20,7 +20,7 @@ def initialize_game():
 
 def main_menu():
     """Despliega el menú principal y maneja la navegación entre opciones."""
-    ui.init_screen()
+    ui.init_screen(backgraound_image="menu")
     font = pygame.font.Font(config.font_bold, 30)
     
     # Carga el archivo MP3
@@ -79,11 +79,12 @@ def start_game(player_board, player, bot_board, bot):
     running = True
     current_turn = "placing_player_ships"
     current_round = 1
-    # Cargar la imagen de fondo
-    fondo = pygame.image.load("./assets/images/background.png")
-    
+
+    fondo = pygame.image.load("./assets/images/battle_1.png")
+    ui.init_screen()
     pygame.mixer.music.load("./assets/sounds/battle.mp3")
     pygame.mixer.music.play(loops=-1)
+    
 
     # Asegúrate de que la imagen se ajusta al tamaño de la ventana
     fondo = pygame.transform.scale(fondo, (config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
@@ -164,7 +165,20 @@ def start_game(player_board, player, bot_board, bot):
                 exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 pygame.mixer.music.stop()
-                running = False
+                while True:
+                    player_board, player, bot_board, bot = initialize_game()
+                    action = main_menu()
+
+                    if action == "Start Game":
+                        start_game(player_board, player, bot_board, bot)
+                    elif action == "Show Rules":
+                        show_rules()
+                    elif action == "Show Settings":
+                        show_settings()
+                    elif action == "Exit":
+                        pygame.quit()
+                        exit()
+                    running = False
 
 def display_winner(winner_name):
     """Muestra la pantalla de victoria."""

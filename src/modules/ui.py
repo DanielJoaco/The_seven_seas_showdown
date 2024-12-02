@@ -7,7 +7,7 @@ class UI:
         self.clock = pygame.time.Clock()
         self.fondo = None  # Aquí se almacenará la imagen de fondo
 
-    def init_screen(self):
+    def init_screen(self, backgraound_image="battle"):
         """Inicializa la pantalla de Pygame según la configuración en config."""
         self.screen = pygame.display.set_mode(
             (config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
@@ -15,7 +15,10 @@ class UI:
         pygame.display.set_caption("The Seven Seas Showdown")
         
         # Cargar la imagen de fondo
-        self.fondo = pygame.image.load("./assets/images/background.png")
+        if backgraound_image == "menu":
+            self.fondo = pygame.image.load("./assets/images/menu_1.png")
+        elif backgraound_image == "battle":
+            self.fondo = pygame.image.load("./assets/images/battle_1.png")
         # Asegurarse de que la imagen se ajusta al tamaño de la ventana
         self.fondo = pygame.transform.scale(self.fondo, (config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
 

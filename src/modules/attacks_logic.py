@@ -50,7 +50,7 @@ def handle_normal_attack(screen, player, bot, bot_board, current_round):
 
     if player.attack_board[selected_row][selected_col]["state"] in [1, 2, 3]:
         display_message(screen, "Esta celda ya ha sido atacada.")
-        return "player_turn"
+        return "player_turn_attack"
 
     # Reduce estamina
     player.stamina -= attack_cost
@@ -347,10 +347,10 @@ def bot_attack(screen, bot, player, player_board, current_round):
 
         # Narrar la acción del bot
         action_messages = {
-            "normal_attack": "El bot realiza un ataque normal.",
-            "line_attack": "El bot utiliza un ataque lineal.",
-            "square_attack": "El bot utiliza un ataque cuadrado.",
-            "use_shield": "El bot activa un escudo.",
+            "normal_attack": "El bot realiza ataque normal.",
+            "line_attack": "El bot utiliza ataque lineal.",
+            "square_attack": "El bot utiliza ataque cuadrado.",
+            "use_shield": "El bot activa escudo.",
         }
 
         display_message(screen, action_messages[attack_type], delay=2000)
@@ -368,9 +368,9 @@ def bot_attack(screen, bot, player, player_board, current_round):
             result, hit_success = handler(screen, bot, player, player_board, current_round)
             ui.update_display()
             time.sleep(1)
-            if hit_success and attack_type != "use_radar" and attack_type != "use_shield":
+            if hit_success and attack_type != "use_shield":
                 # Si el bot acertó y no fue radar o escudo, ataca de nuevo
-                display_message(screen, "El bot ataca de nuevo por acertar un ataque.", delay=1500)
+                display_message(screen, "El bot ataca de nuevo.", delay=1500)
                 continue_attacking = True
             else:
                 continue_attacking = False
@@ -460,9 +460,9 @@ def bot_handle_line_attack(screen, bot, player, player_board, current_round):
     ui.update_display()
 
     if any_hit:
-        display_message(screen, "¡El bot acertó con su ataque lineal!", delay=1500)
+        display_message(screen, "¡El bot acertó!", delay=1500)
     else:
-        display_message(screen, "El bot falló su ataque lineal.", delay=1500)
+        display_message(screen, "El bot falló .", delay=1500)
 
     return "player_turn", any_hit
 
@@ -499,9 +499,9 @@ def bot_handle_square_attack(screen, bot, player, player_board, current_round):
     ui.update_display()
 
     if any_hit:
-        display_message(screen, "¡El bot acertó con su ataque cuadrado!", delay=1500)
+        display_message(screen, "¡El bot acertó!", delay=1500)
     else:
-        display_message(screen, "El bot falló su ataque cuadrado.", delay=1500)
+        display_message(screen, "El bot falló .", delay=1500)
 
     return "player_turn", any_hit
 

@@ -14,16 +14,16 @@ class Config:
         self.colors = {
             "background": (34, 87, 122),
             "cell": (22, 46, 80),
-            "button": (53, 172, 120),
-            "hovered_button": (199, 249, 204),
-            "selected_cell": (199, 249, 204),
+            "button": (48, 106, 138),
+            "hovered_button": (151, 150, 179),
+            "selected_cell": (151, 150, 179),
             "border": (0, 0, 0),
             "selected_border": (255, 255, 255),
-            "text": (229, 88, 18),
+            "text": (223, 114, 99),
             "water": (105, 105, 105),
             "hit": (229, 88, 18),
             "disabled_button": (128, 128, 128),
-            "preview_attack": (255, 255, 0),
+            "preview_attack": (151, 150, 179),
             "shielded": (0, 0, 139),  # Usamos el mismo color para celdas protegidas por escudo
         }
 
