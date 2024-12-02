@@ -1,6 +1,6 @@
 import unittest
 from tests.test_base import TestBase
-from modules.board import Board
+from src.modules.board import Board
 
 class TestBoard(TestBase):
     def setUp(self):

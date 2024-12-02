@@ -1,6 +1,6 @@
 import unittest
 from tests.test_base import TestBase
-from modules.utils import is_within_bounds, toggle_orientation
+from src.modules.utils import is_within_bounds, toggle_orientation
 
 class TestUtils(TestBase):
     def test_is_within_bounds_true(self):

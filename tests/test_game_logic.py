@@ -1,9 +1,9 @@
 import unittest
 from tests.test_base import TestBase
-from modules.board import Board
-from modules.player import Player
-from modules.warships import Ship
-from modules.utils import can_place_ship
+from src.modules.board import Board
+from src.modules.player import Player
+from src.modules.warships import Ship
+from src.modules.utils import can_place_ship
 
 class TestGameLogic(TestBase):
     def setUp(self):

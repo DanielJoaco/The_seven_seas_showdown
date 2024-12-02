@@ -1,7 +1,7 @@
 import unittest
 from tests.test_base import TestBase
-from modules.player import Player
-from modules.board import Board
+from src.modules.player import Player
+from src.modules.board import Board
 
 class TestPlayer(TestBase):
     def setUp(self):

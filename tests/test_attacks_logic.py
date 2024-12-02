@@ -1,8 +1,8 @@
 import unittest
 from tests.test_base import TestBase
-from modules.board import Board
-from modules.player import Player
-from modules.attacks_logic import find_nearest_ship_cell
+from src.modules.board import Board
+from src.modules.player import Player
+from src.modules.attacks_logic import find_nearest_ship_cell
 
 class TestAttacksLogic(TestBase):
     def setUp(self):
