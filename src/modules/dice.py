@@ -111,13 +111,13 @@ def _get_dice_event(dice_result):
     Obtiene el evento del dado basado en el rango del resultado.
     """
     dice_events = [
-        {"range": range(1, 6), "action": lambda p: setattr(p, "turn_skipped", True), "message": "Perdiste tu turno."},
-        {"range": range(6, 36), "action": lambda p: setattr(p, "stamina", p.stamina + 1), "message": "Ganaste 1 punto de estamina."},
-        {"range": range(36, 46), "action": lambda p: setattr(p, "stamina", p.stamina + 2), "message": "Ganaste 2 puntos de estamina."},
-        {"range": range(46, 51), "action": lambda p: setattr(p, "stamina", p.stamina + 3), "message": "Ganaste 3 puntos de estamina."},
-        {"range": range(51, 56), "action": lambda p: setattr(p, "life", max(0, p.life - 1)), "message": "Perdiste 1 vida."},
+        {"range": range(1, 6), "action": lambda p: setattr(p, "turn_skipped", True), "message": "Pierde turno."},
+        {"range": range(6, 36), "action": lambda p: setattr(p, "stamina", p.stamina + 1), "message": "Ganas 1 punto de estamina."},
+        {"range": range(36, 46), "action": lambda p: setattr(p, "stamina", p.stamina + 2), "message": "Gana 2 puntos de estamina."},
+        {"range": range(46, 51), "action": lambda p: setattr(p, "stamina", p.stamina + 3), "message": "Gana 3 puntos de estamina."},
+        {"range": range(51, 56), "action": lambda p: setattr(p, "life", max(0, p.life - 1)), "message": "Pierde 1 de vida."},
         {"range": range(56, 96), "action": lambda p: None, "message": "No pasa nada."},
-        {"range": range(96, 101), "action": lambda p: setattr(p, "temp_shield", True), "message": "Obtienes un escudo temporal."},
+        {"range": range(96, 101), "action": lambda p: setattr(p, "temp_shield", True), "message": "Obtiene un escudo"},
     ]
 
     for event in dice_events:

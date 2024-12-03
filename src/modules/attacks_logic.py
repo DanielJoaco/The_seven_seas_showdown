@@ -11,6 +11,7 @@ from modules.ui import ui
 import math
 import random
 import time
+from modules.dice import process_dice_roll
 
 def handle_attack_action(screen, player, bot, bot_board, attack_type, current_round):
     """
@@ -37,11 +38,6 @@ def handle_normal_attack(screen, player, bot, bot_board, current_round):
     """
     Maneja un ataque normal.
     """
-    attack_cost = 0
-    if player.stamina < attack_cost:
-        display_message(screen, "No tienes suficiente estamina para un ataque normal.")
-        return "player_turn"
-
     selected_row, selected_col, orientation, confirm = select_attack_cell(
         screen, bot_board, player, bot, attack_type="normal_attack", current_round=current_round)
 
@@ -51,9 +47,6 @@ def handle_normal_attack(screen, player, bot, bot_board, current_round):
     if player.attack_board[selected_row][selected_col]["state"] in [1, 2, 3]:
         display_message(screen, "Esta celda ya ha sido atacada.")
         return "player_turn_attack"
-
-    # Reduce estamina
-    player.stamina -= attack_cost
 
     result = bot.receive_attack(selected_row, selected_col)
     update_attack_board(player, selected_row, selected_col, result)
@@ -304,24 +297,27 @@ def select_attack_line(screen, bot_board, player, bot, attack_type="line_attack"
         clock.tick(60)
 
 def update_attack_board(player, row, col, result):
-    """
-    Actualiza el tablero de ataque del jugador basado en el resultado del ataque.
-    """
+    """Actualiza el tablero de ataque del jugador basado en el resultado del ataque."""
     if result == "hit":
         player.attack_board[row][col]["state"] = 2  # Impacto
-        player.attack_board[row][col]["color"] = config.colors["hit"]
+        player.attack_board[row][col]["color"] = config.colors["hit"]  # El mismo color para ambos
     elif result == "miss":
         player.attack_board[row][col]["state"] = 1  # Agua
-        player.attack_board[row][col]["color"] = config.colors["water"]
+        player.attack_board[row][col]["color"] = config.colors["water"]  # El mismo color para ambos
     elif result == "shielded":
         player.attack_board[row][col]["state"] = 4  # Escudo
-        player.attack_board[row][col]["color"] = config.colors["shielded"]
+        player.attack_board[row][col]["color"] = config.colors["shielded"]  # El mismo color para ambos
 
 def bot_attack(screen, bot, player, player_board, current_round):
     """
     Lógica de ataque del bot.
     """
-    time.sleep(1)
+    display_message(screen, "Tirando dados del bot...", delay=1500)
+    message = process_dice_roll(random.randint(1, 100), bot)
+    display_message(screen, message, delay=1500)
+    if message == "Pierde turno.":
+        return "player_turn"
+    
     continue_attacking = True  # Variable para controlar ataques adicionales
     while continue_attacking:
         abilities = ["normal_attack", "line_attack", "square_attack", "use_shield"]
@@ -340,7 +336,7 @@ def bot_attack(screen, bot, player, player_board, current_round):
 
         # Verificar si el bot tiene suficiente estamina
         if bot.stamina < ability_costs[attack_type]:
-            attack_type = "normal_attack"
+            attack_type = "normal_attack"  # Forzar ataque normal si no tiene suficiente estamina
 
         # Registrar el tipo de ataque utilizado
         bot.last_attack_type = attack_type
@@ -365,25 +361,27 @@ def bot_attack(screen, bot, player, player_board, current_round):
 
         handler = bot_action_handlers.get(attack_type)
         if handler:
-            result, hit_success = handler(screen, bot, player, player_board, current_round)
+            hit_success = handler(screen, bot, player, player_board, current_round)
             ui.update_display()
             time.sleep(1)
-            if hit_success and attack_type != "use_shield":
-                # Si el bot acertó y no fue radar o escudo, ataca de nuevo
+
+            if hit_success:
                 display_message(screen, "El bot ataca de nuevo.", delay=1500)
-                continue_attacking = True
             else:
-                continue_attacking = False
-                return "player_turn"
+                continue_attacking = False  # Si el ataque falla, termina el turno del bot
         else:
             print(f"Tipo de ataque desconocido: {attack_type}")
             continue_attacking = False
             return "player_turn"
 
+        # Si se activó el escudo, el bot puede atacar de nuevo, sin cambiar el turno
+        if attack_type == "use_shield" and bot.temp_shield:
+            continue_attacking = True  # Permitir más ataques después de usar el escudo
+        
+    return "player_turn"  # Cuando termine el ataque, pasa el turno al jugador
+
 def bot_handle_normal_attack(screen, bot, player, player_board, current_round):
-    """
-    Maneja un ataque normal del bot.
-    """
+    """Maneja un ataque normal del bot."""
     attack_cost = 0
     bot.stamina -= attack_cost
 
@@ -395,12 +393,12 @@ def bot_handle_normal_attack(screen, bot, player, player_board, current_round):
         if bot.attack_board[row][col]["state"] == 0
     ]
     if not valid_cells:
-        return "player_turn", False
+        return False
 
     selected_row, selected_col = random.choice(valid_cells)
 
     result = player.receive_attack(selected_row, selected_col)
-    update_bot_attack_board(bot, selected_row, selected_col, result)
+    update_attack_board(bot, selected_row, selected_col, result)
     # Limpiar la pantalla antes de dibujar
     screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
@@ -417,7 +415,7 @@ def bot_handle_normal_attack(screen, bot, player, player_board, current_round):
         display_message(screen, "El bot falló su ataque.", delay=1500)
         hit_success = False
 
-    return "player_turn", hit_success
+    return hit_success
 
 def bot_handle_line_attack(screen, bot, player, player_board, current_round):
     """
@@ -445,26 +443,26 @@ def bot_handle_line_attack(screen, bot, player, player_board, current_round):
             if is_within_bounds(row, selected_col, player_board.board_size):
                 cells_to_attack.append((row, selected_col))
 
-    any_hit = False
+    hit_success = False
     for row, col in cells_to_attack:
         if bot.attack_board[row][col]["state"] in [0, 5]:
             result = player.receive_attack(row, col)
-            update_bot_attack_board(bot, row, col, result)
+            update_attack_board(bot, row, col, result)
             if result == "hit":
-                any_hit = True
+                hit_success = True
             elif result == "shielded":
-                any_hit = False  # Escudo bloqueó el ataque
+                hit_success = False  # Escudo bloqueó el ataque
     # Limpiar la pantalla antes de dibujar
     screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
 
-    if any_hit:
+    if hit_success:
         display_message(screen, "¡El bot acertó!", delay=1500)
     else:
         display_message(screen, "El bot falló .", delay=1500)
 
-    return "player_turn", any_hit
+    return hit_success
 
 def bot_handle_square_attack(screen, bot, player, player_board, current_round):
     """
@@ -484,26 +482,26 @@ def bot_handle_square_attack(screen, bot, player, player_board, current_round):
         if is_within_bounds(selected_row + i, selected_col + j, player_board.board_size)
     ]
 
-    any_hit = False
+    hit_success = False
     for row, col in cells_to_attack:
         if bot.attack_board[row][col]["state"] in [0, 5]:
             result = player.receive_attack(row, col)
-            update_bot_attack_board(bot, row, col, result)
+            update_attack_board(bot, row, col, result)
             if result == "hit":
-                any_hit = True
+                hit_success = True
             elif result == "shielded":
-                any_hit = False  # Escudo bloqueó el ataque
+                hit_success = False  # Escudo bloqueó el ataque
     # Limpiar la pantalla antes de dibujar
     screen.fill(config.colors["background"])
     ui.draw_game_state(screen, player, bot, player_board, bot.board, "bot_turn", current_round)
     ui.update_display()
 
-    if any_hit:
+    if hit_success:
         display_message(screen, "¡El bot acertó!", delay=1500)
     else:
         display_message(screen, "El bot falló .", delay=1500)
 
-    return "player_turn", any_hit
+    return hit_success
 
 def bot_handle_shield(screen, bot, player, player_board, current_round):
     """
@@ -516,9 +514,8 @@ def bot_handle_shield(screen, bot, player, player_board, current_round):
     bot.temp_shield = True
     display_message(screen, "El bot ha activado un escudo.", delay=1500)
 
-    return "player_turn", False  # El escudo no concede ataques adicionales
+    return "bot_turn"  # No cambia el turno, permite que el bot continúe atacando
 
-def update_bot_attack_board(bot, row, col, result):
     """
     Actualiza el tablero de ataque del bot basado en el resultado del ataque.
     """
@@ -528,6 +525,6 @@ def update_bot_attack_board(bot, row, col, result):
     elif result == "miss":
         bot.attack_board[row][col]["state"] = 1  # Agua
         bot.attack_board[row][col]["color"] = config.colors["water"]
-    elif result == "shielded" or result == "use_shield":
+    elif result == "shielded":
         bot.attack_board[row][col]["state"] = 4  # Escudo
         bot.attack_board[row][col]["color"] = config.colors["shielded"]

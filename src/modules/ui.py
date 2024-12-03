@@ -93,7 +93,7 @@ class UI:
             text = font.render(f"{key}: {value}", True, config.colors["text"])
             screen.blit(text, (x + padding, y + padding + i * line_height))
         
-    def draw_attack_board(self, screen, board, attack_board):
+    def draw_attack_board(self, screen, board, attack_board, player="player"):
         """
         Dibuja el tablero de ataque del jugador (su vista del tablero del bot).
         """
@@ -132,8 +132,6 @@ class UI:
                     color = config.colors["hit"]
                 elif state == 4:
                     color = config.colors["shielded"]
-                elif state == 5:
-                    color = config.colors["radar_detected"]
                 else:
                     color = config.colors["cell"]
 

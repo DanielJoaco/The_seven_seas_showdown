@@ -13,7 +13,7 @@ class Config:
         # Colores centralizados
         self.colors = {
             "background": (34, 87, 122),
-            "cell": (22, 46, 80),
+            "cell": (48, 106, 138),
             "button": (48, 106, 138),
             "hovered_button": (151, 150, 179),
             "selected_cell": (151, 150, 179),
@@ -21,10 +21,11 @@ class Config:
             "selected_border": (255, 255, 255),
             "text": (223, 114, 99),
             "water": (105, 105, 105),
+            "ship": (22, 46, 80),
             "hit": (229, 88, 18),
             "disabled_button": (128, 128, 128),
             "preview_attack": (151, 150, 179),
-            "shielded": (0, 0, 139),  # Usamos el mismo color para celdas protegidas por escudo
+            "shielded": (0, 0, 139),
         }
 
         # Configuración del tablero

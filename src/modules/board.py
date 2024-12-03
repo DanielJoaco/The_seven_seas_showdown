@@ -19,14 +19,16 @@ class Board:
         """Obtiene el color de una celda basado en su estado."""
         if cell["state"] == 0:
             if cell["ship"]:
-                return config.colors["ship"]  # Color para barcos no atacados
+                return config.colors["water"]  # Color para barcos no atacados
             else:
                 return config.colors["cell"]  # Agua no atacada
         elif cell["state"] == 1:
-            return config.colors["water"]  # Agua atacada (fallo)
+            return config.colors["ship"]  # Agua atacada (fallo)
         elif cell["state"] == 2:
-            return config.colors["hit"]  # Barco atacado (impacto)
+            return config.colors["water"]  # Barco atacado (impacto)
         elif cell["state"] == 3:
+            return config.colors["hit"]  # Barco atacado (impacto)
+        elif cell["state"] == 4:
             return config.colors["shielded"]  # Celda protegida por escudo
         else:
             return config.colors["cell"]
