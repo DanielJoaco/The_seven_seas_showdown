@@ -1,6 +1,7 @@
 .venv/
 /venv
 /docs/informe y diapositivas/
+/assets/video/
 *.pyc
 __pycache__/
 
