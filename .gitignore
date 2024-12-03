@@ -1,6 +1,6 @@
 .venv/
 /venv
-
+/docsi/nforme y diapositivas/
 *.pyc
 __pycache__/
 
