@@ -6,9 +6,9 @@ class Config:
         self.WINDOW_WIDTH, self.WINDOW_HEIGHT = 1180, 660
         self.CELL_SIZE = 25
         self.BORDER_WIDTH = 1
-        self.icon = pygame.image.load("./assets/images/icon.png")
-        self.font_bold = "./assets/fonts/Pixelify_Sans/static/PixelifySans-Bold.ttf"
-        self.font_regular = "./assets/fonts/Pixelify_Sans/static/PixelifySans-Regular.ttf"
+        self.icon = pygame.image.load("../assets/images/icon.png")
+        self.font_bold = "../assets/fonts/Pixelify_Sans/static/PixelifySans-Bold.ttf"
+        self.font_regular = "../assets/fonts/Pixelify_Sans/static/PixelifySans-Regular.ttf"
 
         # Colores centralizados
         self.colors = {
