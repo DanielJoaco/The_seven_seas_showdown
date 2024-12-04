@@ -24,7 +24,7 @@ def main_menu():
     font = pygame.font.Font(config.font_bold, 30)
     
     # Carga el archivo MP3
-    pygame.mixer.music.load("../assets/sounds/menu.mp3")
+    pygame.mixer.music.load("./assets/sounds/menu.mp3")
     # Reproduce el MP3 en bucle (-1 significa bucle infinito)
     pygame.mixer.music.play(loops=-1)
 
@@ -79,9 +79,9 @@ def start_game(player_board, player, bot_board, bot):
     current_turn = "placing_player_ships"
     current_round = 1
 
-    fondo = pygame.image.load("../assets/images/battle_1.png")
+    fondo = pygame.image.load("./assets/images/battle_1.png")
     ui.init_screen()
-    pygame.mixer.music.load("../assets/sounds/battle.mp3")
+    pygame.mixer.music.load("./assets/sounds/battle.mp3")
     pygame.mixer.music.play(loops=-1)
     
 

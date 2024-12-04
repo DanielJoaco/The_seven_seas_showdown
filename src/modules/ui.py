@@ -16,7 +16,7 @@ class UI:
         
         # Cargar la imagen de fondo
         if backgraound_image == "menu":
-            self.fondo = pygame.image.load("../assets/images/menu_1.png")
+            self.fondo = pygame.image.load("./assets/images/menu_1.png")
             font_title = pygame.font.Font(config.font_bold, 54)
             title = "The Seven Seas Showdown"
             title_text = font_title.render(title, True, config.colors["text"])
@@ -24,7 +24,7 @@ class UI:
             self.screen.blit(title_text, title_rect)
     
         elif backgraound_image == "battle":
-            self.fondo = pygame.image.load("../assets/images/battle_1.png")
+            self.fondo = pygame.image.load("./assets/images/battle_1.png")
         # Asegurarse de que la imagen se ajusta al tamaño de la ventana
         self.fondo = pygame.transform.scale(self.fondo, (config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
 
